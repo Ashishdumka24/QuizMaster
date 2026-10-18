@@ -1,0 +1,45 @@
+{% extends "layouts/public.html" %}
+{% from "macros/ui.html" import field, textarea %}
+{% block title %}Help & contact{% endblock %}
+{% block content %}
+<section class="section" style="padding-top:3rem">
+  <div class="container">
+    <div class="section-head fade-up"><span class="kicker">Help centre</span><h1 style="font-size:clamp(2rem,1.4rem + 2vw,3rem)">How can we help?</h1><p>Find quick answers below, read the full <a href="{{ url_for('public.manual') }}">user manual</a>, or send us a message.</p></div>
+    <div class="grid grid-3 mb-3">
+      <a class="card card-hover feature" href="{{ url_for('public.manual') }}" style="color:inherit;text-decoration:none"><div class="feature-icon stat-icon">{{ icon('book') }}</div><h3>User manual</h3><p>Step-by-step guides for students and administrators.</p></a>
+      <a class="card card-hover feature" href="{{ url_for('public.shortcuts') }}" style="color:inherit;text-decoration:none"><div class="feature-icon stat-icon cool">{{ icon('keyboard') }}</div><h3>Keyboard shortcuts</h3><p>Move faster through quizzes and dashboards.</p></a>
+      <a class="card card-hover feature" href="#contact" style="color:inherit;text-decoration:none"><div class="feature-icon stat-icon warm">{{ icon('message') }}</div><h3>Contact support</h3><p>{{ support_hours or 'We usually reply within two working days.' }}</p></a>
+    </div>
+    <div class="grid-main">
+      <div class="faq">
+        <h2>Frequently asked questions</h2>
+        <h3 class="text-muted text-sm" style="text-transform:uppercase;letter-spacing:.08em;margin-top:1.4rem">Account</h3>
+        <details><summary>I didn’t receive my verification code.</summary><p>Check spam/promotions. On the verification page, press “Resend code” (available after a short cooldown). Each new code cancels older ones. Codes expire after {{ config.OTP_TTL_MINUTES }} minutes.</p></details>
+        <details><summary>I forgot my password.</summary><p>Use “Forgot password?” on the sign-in page. We’ll email a single-use link valid for {{ config.RESET_TOKEN_TTL_MINUTES }} minutes. Resetting signs you out everywhere.</p></details>
+        <details><summary>My account is locked.</summary><p>After {{ config.LOGIN_MAX_FAILURES }} failed sign-in attempts, the account is locked for {{ config.LOGIN_LOCK_MINUTES }} minutes to protect it. Wait, or reset your password.</p></details>
+        <details><summary>How do I delete my account?</summary><p>Go to Settings → Danger zone. Deletion is permanent and removes your attempts and profile photo.</p></details>
+        <h3 class="text-muted text-sm" style="text-transform:uppercase;letter-spacing:.08em;margin-top:1.4rem">Taking quizzes</h3>
+        <details><summary>What if I close the tab or lose connection?</summary><p>Answers autosave and are also kept on your device until the server confirms them. Reopen the quiz from your dashboard to continue. The timer keeps running on the server.</p></details>
+        <details><summary>What happens when time runs out?</summary><p>Your saved answers are submitted automatically. Unanswered questions score zero.</p></details>
+        <details><summary>What is negative marking?</summary><p>On quizzes with negative marking, a wrong answer subtracts the stated marks. Leaving a question blank scores zero. Your total never goes below zero.</p></details>
+        <details><summary>Why can’t I see the correct answers?</summary><p>The administrator controls when results, correct answers and explanations are released — immediately, after the quiz closes, or manually.</p></details>
+      </div>
+      <div class="card card-lg" id="contact">
+        <h2 style="margin-top:0">Send us a message</h2>
+        <p class="text-muted text-sm">Messages are stored securely and answered by the QuizMaster team by email.</p>
+        <form method="post" action="{{ url_for('public.help_center') }}#contact" class="stack" style="--gap:1rem" novalidate>
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          {{ field('name', 'Your name', form.name, required=True, errors=errors, maxlength=120, autocomplete='name') }}
+          {{ field('email', 'Email address', form.email, type='email', required=True, errors=errors, maxlength=254, autocomplete='email') }}
+          {{ field('subject', 'Subject', form.subject, required=True, errors=errors, maxlength=150) }}
+          {{ textarea('message', 'Message', form.message, errors=errors, required=True, rows=5, maxlength=4000, placeholder='Describe your question or problem. Include the quiz name if relevant.') }}
+          <button type="submit" class="btn btn-primary btn-block">{{ icon('send') }} Send message</button>
+        </form>
+        {% if current_user.is_authenticated and not current_user.is_admin %}
+        <p class="text-sm text-muted mt-2" style="margin-bottom:0">Want to rate your experience or report a bug? Use the <a href="{{ url_for('student.feedback') }}">feedback form</a>.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,40 @@
+{% extends "layouts/public.html" %}
+{% block title %}About{% endblock %}
+{% block content %}
+<section class="section" style="padding-top:3rem">
+  <div class="container">
+    <div class="section-head fade-up"><span class="kicker">About QuizMaster</span><h1 style="font-size:clamp(2rem,1.4rem + 2vw,3rem)">Assessment built on <span class="gradient-text">quality principles</span></h1>
+      <p>QuizMaster is an online quiz system developed for the BBAT104 Total Quality Management course (session 2026–27). Its core quality goal: <b>ensure zero latency during submissions &amp; auto-grading.</b></p></div>
+    <div class="grid grid-3">
+      {% for ic, tone, t, d in [
+        ('smile', '', 'Customer focus', 'Learners and teachers are the customers. Feedback forms, bug reports and support messages feed directly into the improvement backlog.'),
+        ('cycle', 'cool', 'Kaizen', 'Small, continuous improvements tracked as PDCA cycles, each linked to a measurable metric.'),
+        ('workflow', 'mint', 'Process-centric', 'The quiz lifecycle is mapped with a SIPOC diagram, from question authoring to result release.'),
+        ('bar-chart', 'warm', 'Fact-based decisions', 'Submission latency, autosave success and defects are measured — and charted with Pareto and control charts.'),
+        ('shield', 'berry', 'Poka-yoke', 'Error-proofing everywhere: confirmation dialogs, duplicate detection, double-submit prevention and publish checks.'),
+        ('target', '', 'Zero-latency goal', 'Grading happens server-side in milliseconds and every submission’s processing time is recorded as a CTQ metric.')
+      ] %}
+      <div class="card feature reveal"><div class="feature-icon stat-icon {{ tone }}" style="width:54px;height:54px">{{ icon(ic) }}</div><h3>{{ t }}</h3><p>{{ d }}</p></div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+<section class="section" style="padding-top:0">
+  <div class="container split-feature">
+    <div class="reveal">
+      <h2>Who uses QuizMaster?</h2>
+      <ul class="check-list">
+        <li>{{ icon('check') }} <span><b>Students</b> take quizzes, review explanations, track progress and download certificates.</span></li>
+        <li>{{ icon('check') }} <span><b>Administrators</b> author questions, run quizzes, release results, manage users and monitor quality.</span></li>
+        <li>{{ icon('check') }} <span><b>Visitors</b> can browse the public quiz catalogue and help centre before signing up.</span></li>
+      </ul>
+    </div>
+    <div class="card card-lg reveal">
+      <h3>Technology</h3>
+      <p class="text-muted">Python 3 · Flask · SQLAlchemy · SQLite3 · Matplotlib (TQM charts) · vanilla JavaScript. No third-party trackers or analytics.</p>
+      <h3 class="mt-2">Honesty note</h3>
+      <p class="text-muted" style="margin:0">All numbers shown in QuizMaster come from its own database. Illustrative graphics on marketing pages are labelled as such.</p>
+    </div>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,21 @@
+{% extends "layouts/public.html" %}
+{% block title %}Developer email outbox{% endblock %}
+{% block content %}
+<section class="section" style="padding-top:3rem">
+  <div class="container-sm">
+    <div class="alert alert-dev mb-3" role="status">{{ icon('wrench') }}<div><b>Development only — these emails were NOT delivered.</b><br>SMTP is not configured, so QuizMaster saved outgoing messages here instead. This page returns 404 in production or once SMTP is configured. See <code>DEPLOYMENT.md</code> → “Email (SMTP)”.</div></div>
+    <h1>Developer outbox</h1>
+    <p class="text-muted">Most recent first. Messages are stored in <code>instance/dev_outbox/</code>.</p>
+    {% if items %}
+    <div class="card card-flush"><div class="table-wrap"><table class="table table-stack">
+      <thead><tr><th>Created (UTC)</th><th>To</th><th>Subject</th><th></th></tr></thead>
+      <tbody>{% for m in items %}
+        <tr><td data-label="Created">{{ m.created_at[:19] | replace('T', ' ') }}</td><td data-label="To">{{ m.to }}</td><td data-label="Subject">{{ m.subject }}</td>
+        <td class="text-right"><a class="btn btn-soft btn-sm" href="{{ url_for('public.dev_outbox_message', filename=m.file) }}" target="_blank" rel="noopener">{{ icon('eye') }} Open</a></td></tr>
+      {% endfor %}</tbody></table></div></div>
+    {% else %}
+    <div class="card empty"><div class="empty-art" style="position:relative">{{ icon('inbox') }}</div><h3>Outbox is empty</h3><p>Register an account or request a password reset to generate a message.</p></div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

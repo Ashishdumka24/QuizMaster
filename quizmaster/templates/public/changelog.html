@@ -1,0 +1,19 @@
+{% extends "layouts/public.html" %}
+{% block title %}Changelog{% endblock %}
+{% block content %}
+<section class="section" style="padding-top:3rem">
+  <div class="container-sm">
+    <div class="section-head"><span class="kicker">Kaizen log</span><h1>Changelog</h1><p>Every release of QuizMaster — continuous improvement, documented.</p></div>
+    {% set tones = {'feature': 'badge-accent', 'fix': 'badge-bad', 'improvement': 'badge-info', 'security': 'badge-dark'} %}
+    {% for e in entries %}
+    <article class="card mb-2 reveal">
+      <div class="row-between"><div class="row"><span class="badge badge-outline">v{{ e.version }}</span><span class="badge {{ tones.get(e.change_type, 'badge-outline') }}">{{ e.change_type | capitalize }}</span></div><time class="text-sm text-muted" datetime="{{ e.released_on.isoformat() }}">{{ e.released_on.strftime('%d %b %Y') }}</time></div>
+      <h2 style="font-size:1.2rem;margin:.7rem 0 .4rem">{{ e.title }}</h2>
+      <ul style="margin:0;padding-left:1.2rem;color:var(--ink-2)">{% for line in e.changes.splitlines() if line.strip() %}<li>{{ line.strip().lstrip('-• ').strip() }}</li>{% endfor %}</ul>
+    </article>
+    {% else %}
+    <div class="card empty"><h3>No releases recorded yet</h3></div>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,17 @@
+{% extends "layouts/app.html" if current_user.is_authenticated and current_user.is_verified else "layouts/public.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<section class="error-page">
+  <div class="fade-up">
+    <div class="error-code">{{ status }}</div>
+    <h1 style="margin:.4rem 0 .5rem">{{ title }}</h1>
+    <p class="text-muted" style="max-width:520px;margin:0 auto 1.6rem">{{ message }}</p>
+    <div class="row" style="justify-content:center">
+      <a class="btn btn-primary" href="{{ home_url }}">{{ icon('home') }} {{ 'Go to dashboard' if current_user.is_authenticated else 'Go to homepage' }}</a>
+      {% if status == 400 or status == 429 %}<a class="btn btn-ghost" href="{{ request.path }}">{{ icon('refresh') }} Try again</a>{% endif %}
+      {% if status == 403 and not current_user.is_authenticated %}<a class="btn btn-ghost" href="{{ url_for('auth.login') }}">{{ icon('log-in') }} Sign in</a>{% endif %}
+      <a class="btn btn-ghost" href="{{ url_for('public.help_center') }}">{{ icon('help') }} Get help</a>
+    </div>
+  </div>
+</section>
+{% endblock %}

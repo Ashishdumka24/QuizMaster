@@ -1,0 +1,56 @@
+{% extends "layouts/public.html" %}
+{% block title %}User manual{% endblock %}
+{% block content %}
+<section class="section" style="padding-top:3rem">
+  <div class="container grid-side">
+    <nav class="toc card" aria-label="Manual contents">
+      <b class="text-sm">Contents</b>
+      <a href="#start">Getting started</a><a href="#taking">Taking a quiz</a><a href="#results">Results &amp; history</a>
+      <a href="#account">Profile &amp; settings</a><a href="#admin">Administrators</a><a href="#tqm">TQM centre</a><a href="#trouble">Troubleshooting</a>
+    </nav>
+    <article class="prose">
+      <h1>QuizMaster user manual</h1>
+      <p class="text-muted">Version {{ app_version }}. A printable copy with screenshots is in <code>docs/USER_MANUAL.md</code> of the project repository.</p>
+      <h2 id="start">1. Getting started</h2>
+      <ol>
+        <li>Open <b>Create account</b>, enter your name, email and a strong password, and accept the terms.</li>
+        <li>Check your email for a {{ config.OTP_LENGTH }}-digit code and enter it on the verification page. You can paste the whole code.</li>
+        <li>You’re signed in and taken to your dashboard.</li>
+      </ol>
+      <h2 id="taking">2. Taking a quiz</h2>
+      <ol>
+        <li>Go to <b>Explore</b> and filter by subject, difficulty or availability.</li>
+        <li>Open a quiz to read its rules: time limit, pass mark, attempts and negative marking.</li>
+        <li>Press <b>Start quiz</b>. The timer starts on the server immediately.</li>
+        <li>Choose answers; use <b>Mark for review</b> for questions you want to revisit. The navigator shows answered (filled), unanswered and marked (amber dot) questions.</li>
+        <li>Press <b>Submit quiz</b>. A summary shows unanswered questions before you confirm.</li>
+      </ol>
+      <p>Keyboard: <kbd>1</kbd>–<kbd>9</kbd> choose options, <kbd>←</kbd>/<kbd>→</kbd> move, <kbd>M</kbd> mark, <kbd>X</kbd> clear, <kbd>S</kbd> submit.</p>
+      <h2 id="results">3. Results &amp; history</h2>
+      <p>When results are released you see your score, pass/fail, time taken and a per-question review (with correct answers and explanations if the quiz allows). <b>History</b> lists every attempt; <b>Results</b> groups released and pending results. Passed quizzes provide a printable certificate.</p>
+      <h2 id="account">4. Profile &amp; settings</h2>
+      <ul>
+        <li><b>Profile</b>: update your name, institution, programme, bio and photo.</li>
+        <li><b>Security</b>: change your password and sign out of other devices.</li>
+        <li><b>Settings</b>: theme, colour palette, contrast, text size, reduced motion, leaderboard visibility and notifications. You can also delete your account.</li>
+      </ul>
+      <h2 id="admin">5. Administrators</h2>
+      <ol>
+        <li>Create categories, then add questions in the <b>Question bank</b> (or import CSV/JSON using the template).</li>
+        <li>Create a quiz in <b>Quizzes</b>, configure timing, attempts, marking and result release, and add questions.</li>
+        <li>Preview, then <b>Publish</b>. QuizMaster blocks publishing if a quiz has problems (no questions, invalid answers, etc.).</li>
+        <li>Monitor <b>Results</b>, override short-answer grading if needed, and publish results for manually released quizzes.</li>
+        <li>Use <b>Announcements</b>, <b>Inbox</b>, <b>Audit logs</b>, <b>Backups</b> and <b>Settings</b> to run the system.</li>
+      </ol>
+      <h2 id="tqm">6. TQM centre</h2>
+      <p>Admins can log defects, view Pareto and fishbone charts, a control chart of submission latency, manage the FMEA (RPN) table, track PDCA cycles, view the SIPOC map and download a quality report.</p>
+      <h2 id="trouble">7. Troubleshooting</h2>
+      <ul>
+        <li><b>“Security check failed”</b>: the page was open too long. Refresh and try again.</li>
+        <li><b>“Too many requests”</b>: wait a minute; limits protect accounts from abuse.</li>
+        <li><b>Offline during a quiz</b>: keep the tab open; answers sync when you reconnect.</li>
+      </ul>
+    </article>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,32 @@
+{% extends "layouts/app.html" if current_user.is_authenticated and current_user.is_verified else "layouts/public.html" %}
+{% block title %}Keyboard shortcuts{% endblock %}
+{% block content %}
+<section class="{{ '' if current_user.is_authenticated else 'section' }}" style="{{ '' if current_user.is_authenticated else 'padding-top:3rem' }}">
+  <div class="{{ '' if current_user.is_authenticated else 'container-sm' }}">
+    <header class="page-head"><div><h1>Keyboard shortcuts</h1><p>Work faster without the mouse. Shortcuts are ignored while you type in a field.</p></div></header>
+    <div class="grid grid-2">
+      <div class="card"><h3>Everywhere</h3><div class="kbd-list">
+        <kbd>/</kbd><span>Focus the search box</span>
+        <kbd>?</kbd><span>Open this page</span>
+        <span><kbd>g</kbd> <kbd>d</kbd></span><span>Go to dashboard</span>
+        <span><kbd>g</kbd> <kbd>e</kbd></span><span>Go to explore</span>
+        <span><kbd>g</kbd> <kbd>h</kbd></span><span>Go to history</span>
+        <span><kbd>g</kbd> <kbd>r</kbd></span><span>Go to results</span>
+        <span><kbd>g</kbd> <kbd>p</kbd></span><span>Go to profile</span>
+        <span><kbd>g</kbd> <kbd>s</kbd></span><span>Go to settings</span>
+        <kbd>Esc</kbd><span>Close menus and dialogs</span>
+      </div></div>
+      <div class="card"><h3>Quiz player</h3><div class="kbd-list">
+        <span><kbd>1</kbd>–<kbd>9</kbd> / <kbd>A</kbd>–<kbd>H</kbd></span><span>Choose an option</span>
+        <span><kbd>T</kbd> / <kbd>F</kbd></span><span>True / False</span>
+        <span><kbd>→</kbd> or <kbd>N</kbd></span><span>Next question</span>
+        <span><kbd>←</kbd> or <kbd>P</kbd></span><span>Previous question</span>
+        <kbd>M</kbd><span>Mark / unmark for review</span>
+        <kbd>X</kbd><span>Clear the answer</span>
+        <kbd>S</kbd><span>Review &amp; submit</span>
+        <kbd>Enter</kbd><span>Next (in a text answer)</span>
+      </div></div>
+    </div>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,155 @@
+{% extends "layouts/public.html" %}
+{% from "macros/ui.html" import quiz_card %}
+{% block title %}Online quiz system{% endblock %}
+{% block content %}
+<section class="hero">
+  <span class="orb orb-1" aria-hidden="true"></span><span class="orb orb-2" aria-hidden="true"></span>
+  <div class="container hero-grid">
+    <div class="fade-up">
+      <span class="eyebrow"><span class="pill">NEW</span> {{ tagline or 'Fast, fair, transparent assessment' }}</span>
+      <h1><span class="line">Quizzes that</span> <span class="line gradient-text">grade instantly</span> <span class="line">and teach deeply.</span></h1>
+      <p class="lead">Take timed quizzes, get server-graded results the moment you submit, and see exactly which topics to review next — all in one beautifully simple place.</p>
+      <div class="hero-cta">
+        {% if current_user.is_authenticated %}
+          <a class="btn btn-primary btn-lg" href="{{ home_url }}">{{ icon('dashboard') }} Go to your dashboard</a>
+        {% else %}
+          <a class="btn btn-primary btn-lg" href="{{ url_for('auth.register') }}">Start learning free {{ icon('arrow-right') }}</a>
+        {% endif %}
+        <a class="btn btn-ghost btn-lg" href="{{ url_for('quiz.explore') }}">{{ icon('compass') }} Explore quizzes</a>
+      </div>
+      <div class="hero-proof" aria-label="Live platform figures from the database">
+        <div><b>{{ platform.quizzes }}</b><span>published quizzes</span></div>
+        <div><b>{{ platform.categories }}</b><span>subjects</span></div>
+        <div><b>{{ platform.attempts }}</b><span>quizzes completed</span></div>
+      </div>
+      <p class="text-xs text-faint mt-1">Figures are live counts from this installation’s database.</p>
+    </div>
+    <div class="hero-visual" aria-hidden="true">
+      <span class="floating-q" style="font-size:7rem;right:6%;top:-4%">?</span>
+      <span class="floating-q" style="font-size:4rem;left:2%;top:46%;animation-delay:-3s">!</span>
+      <div class="hv-card hv-badge">{{ icon('check-circle') }} Auto-graded in milliseconds</div>
+      <div class="hv-card hv-quiz">
+        <div class="hv-top"><span>Science · Question 4 / 10</span><span class="hv-timer">{{ icon('timer') }} 07:42</span></div>
+        <div class="hv-q">Which gas do plants absorb during photosynthesis?</div>
+        <div class="hv-opt"><span class="k">A</span>Oxygen</div>
+        <div class="hv-opt correct"><span class="k">B</span>Carbon dioxide</div>
+        <div class="hv-opt"><span class="k">C</span>Nitrogen</div>
+        <div class="hv-progress"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      </div>
+      <div class="hv-card hv-score"><div class="ring" style="--p:86;--size:74px;--thick:8px"><div><div class="ring-value">86%</div></div></div><div><b>Passed!</b><div class="text-xs text-muted">Sample result card</div></div></div>
+      <div class="hv-card hv-streak"><span class="flame">{{ icon('flame') }}</span><div><b>Study streak</b><div class="text-xs text-muted">Keep practising daily</div></div></div>
+    </div>
+  </div>
+</section>
+
+{% if categories %}
+<section class="section" style="padding-top:1rem">
+  <div class="container">
+    <div class="section-head reveal"><span class="kicker">Subjects</span><h2>Pick a subject and dive in</h2><p>Every quiz is written and reviewed by administrators — no filler questions.</p></div>
+    <div class="grid grid-4">
+      {% for cat, count in categories[:8] %}
+      <a class="cat-tile reveal" style="--cat: {{ cat.color }}" href="{{ url_for('quiz.explore', category=cat.slug) }}">
+        <span class="cat-ic">{{ icon(cat.icon) }}</span>
+        <span><b>{{ cat.name }}</b><small>{{ count }} quiz{{ 'zes' if count != 1 }}</small></span>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<section class="section" id="featured">
+  <div class="container">
+    <div class="row-between mb-3 reveal">
+      <div><span class="kicker" style="font-size:.78rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--accent-ink)">Featured</span><h2 style="margin:.3rem 0 0">Popular quizzes right now</h2></div>
+      <a class="btn btn-soft" href="{{ url_for('quiz.explore') }}">See all quizzes {{ icon('arrow-right') }}</a>
+    </div>
+    {% if featured %}
+    <div class="grid grid-3">{% for q in featured %}<div class="reveal">{{ quiz_card(q) }}</div>{% endfor %}</div>
+    {% else %}
+    <div class="card empty"><div class="empty-art" style="position:relative">{{ icon('layers') }}</div><h3>No quizzes are open yet</h3><p>An administrator hasn’t published any quizzes. Check back soon.</p></div>
+    {% endif %}
+  </div>
+</section>
+
+<section class="section" id="features">
+  <div class="container">
+    <div class="section-head reveal"><span class="kicker">Features</span><h2>Everything you need for <span class="gradient-text">quality assessment</span></h2><p>Designed around Total Quality Management: zero-latency submissions, error-proof workflows and decisions based on facts.</p></div>
+    <div class="grid grid-3">
+      {% set feats = [
+        ('zap', '', 'Instant auto-grading', 'Answers are graded on the server the moment you submit — measured and monitored as a critical-to-quality metric.'),
+        ('shield', 'cool', 'Never lose an answer', 'Autosave every change, keep a local backup while offline, and resume exactly where you left off.'),
+        ('timer', 'warm', 'Fair, server-side timer', 'The deadline is enforced by the server, so every learner gets exactly the same time.'),
+        ('bar-chart', 'mint', 'Insightful analytics', 'Trends, subject strengths and per-question review show you precisely where to focus.'),
+        ('award', 'berry', 'Certificates & leaderboards', 'Earn printable certificates for passed quizzes and opt in to friendly leaderboards.'),
+        ('accessibility', '', 'Accessible by design', 'Full keyboard support, dark mode, high contrast, text sizing and reduced-motion preferences.')
+      ] %}
+      {% for ic, tone, title, text in feats %}
+      <div class="card card-hover feature reveal">
+        <div class="feature-icon stat-icon {{ tone }}" style="width:54px;height:54px">{{ icon(ic) }}</div>
+        <h3>{{ title }}</h3><p>{{ text }}</p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="section" id="how">
+  <div class="container">
+    <div class="section-head reveal"><span class="kicker">How it works</span><h2>From sign-up to insight in four steps</h2></div>
+    <div class="steps">
+      <div class="step reveal"><h3>Create an account</h3><p>Register with your email and confirm it with a one-time code.</p></div>
+      <div class="step reveal"><h3>Choose a quiz</h3><p>Filter by subject, difficulty and availability. Read the rules before you start.</p></div>
+      <div class="step reveal"><h3>Answer with confidence</h3><p>Navigate freely, mark questions for review — every answer autosaves.</p></div>
+      <div class="step reveal"><h3>Review &amp; improve</h3><p>See your score instantly, study explanations and track your progress.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container split-feature">
+    <div class="reveal">
+      <span class="kicker" style="font-size:.78rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--accent-ink)">For administrators</span>
+      <h2 style="margin-top:.4rem">A complete console — with quality built in</h2>
+      <p class="text-muted">Build quizzes from a searchable question bank, control release of results, and monitor the system with real TQM tools.</p>
+      <ul class="check-list">
+        <li>{{ icon('check') }} Five question types, CSV/JSON import and duplicate detection</li>
+        <li>{{ icon('check') }} Draft → published → closed → archived lifecycle with safeguards</li>
+        <li>{{ icon('check') }} Pareto, fishbone, control charts, FMEA (RPN) and PDCA tracking</li>
+        <li>{{ icon('check') }} Audit logs, backups and exportable reports</li>
+      </ul>
+    </div>
+    <div class="mock-dash reveal" aria-hidden="true">
+      <div class="row-between"><b>Submission latency (illustration)</b><span class="badge badge-ok">Within target</span></div>
+      <div class="mock-bars">{% for h in [42, 58, 36, 64, 48, 72, 55, 40, 66, 50] %}<i style="height:{{ h }}%;animation-delay:{{ loop.index0 * 60 }}ms"></i>{% endfor %}</div>
+      <p class="text-xs text-faint mt-1" style="margin-bottom:0">Illustrative graphic. Real metrics appear in the admin TQM centre.</p>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="faq">
+  <div class="container-sm">
+    <div class="section-head reveal"><span class="kicker">FAQ</span><h2>Questions, answered</h2></div>
+    <div class="faq reveal">
+      <details><summary>Is QuizMaster free for students?</summary><p>Yes. Create an account, verify your email and take any published quiz.</p></details>
+      <details><summary>What happens if my internet disconnects during a quiz?</summary><p>Your answers are kept on your device and synced automatically when the connection returns. The server timer keeps running, so reconnect as soon as you can.</p></details>
+      <details><summary>When will I see my results?</summary><p>That depends on the quiz: some release results immediately, others after the quiz closes or when the administrator publishes them. The quiz page always tells you which.</p></details>
+      <details><summary>Can I retake a quiz?</summary><p>If the administrator allows more than one attempt, yes — the quiz page shows how many attempts you have left.</p></details>
+    </div>
+    <p class="text-center mt-3"><a href="{{ url_for('public.help_center') }}" class="fw-600">Visit the help centre {{ icon('arrow-right') }}</a></p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <div class="cta-band reveal">
+      <div><h2>Ready to test what you know?</h2><p>Join now and take your first quiz in under a minute.</p></div>
+      {% if current_user.is_authenticated %}
+      <a class="btn btn-white btn-lg" href="{{ url_for('quiz.explore') }}">Browse quizzes {{ icon('arrow-right') }}</a>
+      {% else %}
+      <a class="btn btn-white btn-lg" href="{{ url_for('auth.register') }}">Create free account {{ icon('arrow-right') }}</a>
+      {% endif %}
+    </div>
+  </div>
+</section>
+{% endblock %}

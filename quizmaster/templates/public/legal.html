@@ -1,0 +1,46 @@
+{% extends "layouts/public.html" %}
+{% block title %}{{ 'Privacy policy' if page == 'privacy' else 'Terms of use' }}{% endblock %}
+{% block content %}
+<section class="section" style="padding-top:3rem">
+  <div class="container-sm">
+    <article class="prose card card-lg">
+    {% if page == 'privacy' %}
+      <h1>Privacy policy</h1>
+      <p class="text-muted">This policy explains what this QuizMaster installation stores and why. It is a template for an academic project; the operator of a real deployment must review it.</p>
+      <h2>What we store</h2>
+      <ul>
+        <li><b>Account data</b>: name, email, password hash (never the password itself), optional profile details and photo.</li>
+        <li><b>Learning data</b>: quiz attempts, answers, scores and timestamps.</li>
+        <li><b>Security data</b>: sign-in events, IP address of key actions (audit log) and hashed verification codes/reset tokens.</li>
+        <li><b>Messages</b>: support messages and feedback you choose to send.</li>
+      </ul>
+      <h2>How we use it</h2>
+      <p>Only to provide quizzes, grade them, show your progress, secure your account and improve the service. No advertising, no selling of data, no third-party analytics.</p>
+      <h2>Cookies</h2>
+      <p>A single essential session cookie (HTTP-only) keeps you signed in and protects forms against CSRF. Guest display preferences are kept in your browser’s local storage.</p>
+      <h2>Leaderboards</h2>
+      <p>You can hide yourself from leaderboards at any time in Settings.</p>
+      <h2>Your rights</h2>
+      <p>You can view and edit your profile at any time, see every attempt in your history, and permanently delete your account from Settings → Danger zone.</p>
+      <h2>Contact</h2>
+      <p>Questions? Use the <a href="{{ url_for('public.help_center') }}#contact">contact form</a>.</p>
+    {% else %}
+      <h1>Terms of use</h1>
+      <p class="text-muted">These terms apply to this QuizMaster installation (an academic project). The operator of a real deployment must review them.</p>
+      <h2>Your account</h2>
+      <ul><li>Provide accurate information and keep your password secret.</li><li>One person per account. Don’t share accounts or attempts.</li></ul>
+      <h2>Fair use</h2>
+      <ul><li>Don’t attempt to access other users’ data, bypass timers or interfere with the service.</li><li>Automated scraping and load testing without permission are not allowed.</li></ul>
+      <h2>Academic integrity</h2>
+      <p>Complete quizzes yourself. Administrators may review attempts and adjust grading where there is a genuine marking error.</p>
+      <h2>Content</h2>
+      <p>Quiz content belongs to its authors. Messages you send must be lawful and respectful.</p>
+      <h2>Availability</h2>
+      <p>The service is provided “as is” without guarantees of uninterrupted availability.</p>
+      <h2>Changes</h2>
+      <p>Material changes will be announced in the app and listed in the <a href="{{ url_for('public.changelog') }}">changelog</a>.</p>
+    {% endif %}
+    </article>
+  </div>
+</section>
+{% endblock %}
