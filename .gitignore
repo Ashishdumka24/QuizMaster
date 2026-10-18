@@ -1,19 +1,29 @@
-# Python
-__pycache__/
-*.py[cod]
+﻿# Environment variables and secrets
+.env
+.env.*
+!.env.example
+
+# Python virtual environments and cache
 .venv/
 venv/
-.pytest_cache/
-# Secrets & local data (never commit)
-.env
+__pycache__/
+*.py[cod]
+
+# Local database, backups, secrets, logs, and uploaded files
 instance/
 *.db
+*.sqlite
 *.sqlite3
-# OS / editor
-.DS_Store
-Thumbs.db
+*.db-journal
+*.log
+
+# Testing and coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Editors and operating system
 .vscode/
 .idea/
-# Generated
-tqm/output/*.png
-!tqm/output/.gitkeep
+.DS_Store
+Thumbs.db
