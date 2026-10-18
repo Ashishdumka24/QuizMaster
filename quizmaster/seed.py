@@ -363,6 +363,29 @@ DEVELOPMENT_DEFECTS = [
     ("Quiz form crashed for new quizzes in strict template mode", "Validation", "Software Code", "Low",
      "admin.quiz_new", "View did not pass the 'problems' list that the template expects",
      "Pass an empty problems list for new quizzes", "Strict-undefined render tests for every admin page"),
+    # --- found in the second build phase (TQM centre, extended test suite) ---
+    ("Bug fix committed without re-running the test suite", "Other", "Process", "Medium", "workflow",
+     "No rule required a green pytest run (normal + strict templates) before each commit",
+     "Full suite re-run in both modes before the next commit; 130 tests passing at that point",
+     "Pre-commit checklist in README: pytest -q and QM_STRICT_TEMPLATES=1 pytest -q must pass", "development"),
+    ("Quality-goal feature mapping did not match the guideline wording", "Documentation", "People", "Medium",
+     "TQM centre / SIPOC page", "Q01–Q20 mapping was first written from memory instead of the guideline PDF",
+     "Q01–Q20 transcribed verbatim from the BBAT104 guideline into quizmaster/quality_goals.py",
+     "Traceability matrix always cites the source document; reviewed against the PDF", "development"),
+    ("Test clients shared the logged-in user between independent sessions", "Authentication", "Software Code",
+     "Medium", "tests/conftest.py", "Fixture kept one app context open, so Flask-Login's cached user in g leaked "
+     "between test clients and hid redirect behaviour", "Requests now run outside a long-lived app context",
+     "Auth tests assert role-based redirects with separate clients", "testing"),
+    ("Dev-outbox notice revealed which emails have accounts", "Authentication", "Software Code", "Low",
+     "auth.forgot_password", "Notice shown only when a reset email was actually written (existing accounts)",
+     "Notice is shown for every request while in outbox mode", "Enumeration test compares responses", "testing"),
+    ("Undefined icon names rendered a fallback glyph silently", "UI / Layout", "Software Code", "Low", "icons.py",
+     "Templates referenced 8 icons that icons.py did not define; icon() fell back to the help glyph",
+     "Added the missing icons", "icon() records missing names; a test fails if any page requests one", "testing"),
+    ("Generated Pareto/fishbone charts had broken and overlapping labels", "UI / Layout", "Software Code", "Low",
+     "services/charts.py", "Axis labels wrapped mid-word; fishbone cause labels crossed the neighbouring bone",
+     "Word-safe wrapping; fishbone bones re-spaced with two-line cause labels",
+     "Visual check of every generated PNG before release", "testing"),
 ]
 
 
@@ -433,16 +456,32 @@ def seed_quality() -> dict:
                                     recommended_action=action, owner="Project team", action_status="Implemented",
                                     new_severity=ns, new_occurrence=no, new_detection=nd))
             out["fmea"] += 1
-    if not Defect.query.count():
-        for title, dtype, fish, sev, module, root, corr, prev in DEVELOPMENT_DEFECTS:
-            d = Defect(title=title, defect_type=dtype, fishbone_category=fish, severity=sev, module=module,
-                       root_cause=root, corrective_action=corr, preventive_action=prev, status="Resolved",
-                       source="development", resolved_at=utcnow(),
-                       description="Recorded during the initial development and code review of QuizMaster v1.0.0.")
-            db.session.add(d)
-            db.session.flush()
-            d.code = f"DEF-{d.id:03d}"
-            out["defects"] += 1
+    # Each development defect is inserted once. Titles already seeded are remembered in
+    # settings so a defect an admin deletes is not re-created on the next start-up.
+    import json as _json
+    from .models import Setting
+    marker = db.session.get(Setting, "seeded_defect_titles")
+    seeded = set(_json.loads(marker.value)) if marker and marker.value else set()
+    if marker is None:  # databases created before this marker existed
+        seeded |= {t for (t,) in db.session.query(Defect.title).all()}
+    for row in DEVELOPMENT_DEFECTS:
+        title, dtype, fish, sev, module, root, corr, prev = row[:8]
+        source = row[8] if len(row) > 8 else "development"
+        if title in seeded:
+            continue
+        seeded.add(title)
+        d = Defect(title=title, defect_type=dtype, fishbone_category=fish, severity=sev, module=module,
+                   root_cause=root, corrective_action=corr, preventive_action=prev, status="Resolved",
+                   source=source, resolved_at=utcnow(),
+                   description="Recorded during the initial development and code review of QuizMaster v1.0.0.")
+        db.session.add(d)
+        db.session.flush()
+        d.code = f"DEF-{d.id:03d}"
+        out["defects"] += 1
+    if marker is None:
+        marker = Setting(key="seeded_defect_titles")
+        db.session.add(marker)
+    marker.value = _json.dumps(sorted(seeded))
     if not PDCAAction.query.count():
         db.session.add(PDCAAction(
             title="Guarantee zero lost submissions", stage="Check",

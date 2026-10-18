@@ -51,7 +51,7 @@ def pareto_png(data: dict, title: str = "Pareto Analysis of Recorded Defects") -
     items = data.get("items", [])
     if not items:
         return _empty(title, "No defects have been logged yet. Add entries in Quality Center → Defect Log.")
-    labels = ["\n".join(textwrap.wrap(i["label"], 12)) for i in items]
+    labels = ["\n".join(textwrap.wrap(i["label"], 13, break_long_words=False)) for i in items]
     counts = [i["count"] for i in items]
     cum = [i["cum_pct"] for i in items]
     colors = ["#6366F1" if i["vital"] else "#C7D2FE" for i in items]
@@ -81,41 +81,56 @@ def pareto_png(data: dict, title: str = "Pareto Analysis of Recorded Defects") -
 
 
 def fishbone_png(data: dict, title: str = "Ishikawa (Fishbone) Root-Cause Diagram") -> bytes:
+    """Four-bone Ishikawa diagram (People / Process / Software Code / Infrastructure).
+
+    Bones are spaced so that each cause label (max two wrapped lines) fits in the
+    gap to the left of its bone without crossing the neighbouring bone."""
     groups = data.get("groups", {})
     cats = list(groups.keys())[:4]
     while len(cats) < 4:
         cats.append(["People", "Process", "Software Code", "Infrastructure"][len(cats)])
-    fig, ax = plt.subplots(figsize=(13, 6.8))
-    ax.set_xlim(0, 13)
-    ax.set_ylim(0, 7)
+    fig, ax = plt.subplots(figsize=(15, 7.6))
+    ax.set_xlim(-1.6, 14.6)
+    ax.set_ylim(-0.2, 7.4)
     ax.axis("off")
-    spine_y = 3.5
-    ax.annotate("", xy=(10.3, spine_y), xytext=(0.4, spine_y),
-                arrowprops=dict(arrowstyle="-|>", color=INK, linewidth=2.6, mutation_scale=22))
+    spine_y = 3.6
+    ax.annotate("", xy=(11.3, spine_y), xytext=(-1.2, spine_y),
+                arrowprops=dict(arrowstyle="-|>", color=INK, linewidth=2.8, mutation_scale=24))
     effect = "\n".join(textwrap.wrap(data.get("effect", "Effect"), 20))
-    ax.text(11.6, spine_y, effect, ha="center", va="center", fontsize=10.5, color="white", fontweight="bold",
+    ax.text(12.9, spine_y, effect, ha="center", va="center", fontsize=11, color="white", fontweight="bold",
             bbox=dict(boxstyle="round,pad=0.7", fc="#6366F1", ec="#4338CA", lw=1.5))
-    positions = [(2.3, True), (6.3, True), (2.3, False), (6.3, False)]
-    for idx, (cat, (x_end, top)) in enumerate(zip(cats, positions)):
+    positions = [(4.4, True), (10.0, True), (4.4, False), (10.0, False)]  # (x where bone meets spine, top?)
+    run = 2.8
+    for idx, (cat, (x_join, top)) in enumerate(zip(cats, positions)):
         color = PALETTE[idx * 2 % len(PALETTE)]
-        y_tip = 6.3 if top else 0.7
-        x_tip = x_end - 1.6
-        bone_end_x = x_end + 1.6
-        ax.plot([x_tip, bone_end_x], [y_tip, spine_y], color=color, linewidth=2.2)
-        ax.text(x_tip, y_tip + (0.28 if top else -0.28), cat, ha="center", va="center", fontsize=11,
+        y_tip = 6.7 if top else 0.5
+        x_tip = x_join - run
+        ax.plot([x_tip, x_join], [y_tip, spine_y], color=color, linewidth=2.6, solid_capstyle="round")
+        ax.text(x_tip, y_tip + (0.32 if top else -0.32), cat, ha="center", va="center", fontsize=11.5,
                 fontweight="bold", color="white", bbox=dict(boxstyle="round,pad=0.4", fc=color, ec=color))
         causes = groups.get(cat, [])[:5]
         if not causes:
-            ax.text((x_tip + bone_end_x) / 2 + 0.3, (y_tip + spine_y) / 2, "(no causes logged)", fontsize=8,
-                    color=MUTED, style="italic")
+            ax.text(x_tip + run * 0.55, (y_tip + spine_y) / 2, "(no causes logged)", fontsize=8.5,
+                    color=MUTED, style="italic", ha="left")
         for j, c in enumerate(causes):
             t = (j + 1) / (len(causes) + 1)
-            bx = x_tip + (bone_end_x - x_tip) * t
+            bx = x_tip + run * t
             by = y_tip + (spine_y - y_tip) * t
-            ax.plot([bx - 1.25, bx], [by, by], color=color, linewidth=1, alpha=0.8)
-            label = textwrap.shorten(f"{c['cause']}", 46, placeholder="…")
-            ax.text(bx - 1.3, by + 0.06, label, ha="right", va="bottom", fontsize=7.4, color=INK)
-    ax.set_title(title, color=INK, fontsize=14, fontweight="bold", loc="left")
+            ax.plot([bx - 2.6, bx], [by, by], color=color, linewidth=1, alpha=0.85)
+            text = f"{c.get('code', '')}: {c['cause']}" if c.get("code") else c["cause"]
+            wrapped = textwrap.wrap(text, 36)
+            lines = wrapped[:2]
+            if len(wrapped) > 2:
+                lines[-1] = textwrap.shorten(lines[-1] + " …", 35, placeholder="…")
+            # Text sits on the side of the rib away from its own bone: below the rib for
+            # top bones, above it for bottom bones, ending just before the bone.
+            ax.text(bx - 0.2, by + (-0.06 if top else 0.06), "\n".join(lines), ha="right",
+                    va="top" if top else "bottom", fontsize=7.3, color=INK, linespacing=1.15)
+        extra = len(groups.get(cat, [])) - len(causes)
+        if extra > 0:
+            ax.text(x_tip + 0.55, y_tip + (-0.3 if top else 0.3), f"+{extra} more in the defect log", fontsize=7.5,
+                    color=MUTED, style="italic", ha="left", va="center")
+    ax.set_title(title, color=INK, fontsize=15, fontweight="bold", loc="left")
     return _png(fig)
 
 
@@ -149,7 +164,7 @@ def control_chart_png(cc: dict, title: str = "I-MR Control Chart — Submission 
     _style(ax)
     ax.set_xlabel("Submission (chronological)", color=MUTED)
     ax.set_ylabel("Processing time (ms)", color=MUTED)
-    ax.legend(frameon=False, fontsize=8, loc="upper left")
+    ax.legend(frameon=False, fontsize=8.5, loc="lower right", bbox_to_anchor=(1, 1.0), ncol=3)
     note = "" if cc.get("enough") else "  (fewer than 10 points — limits are provisional)"
     ax.set_title(title + note, color=INK, fontsize=13, fontweight="bold", loc="left")
     return _png(fig)
