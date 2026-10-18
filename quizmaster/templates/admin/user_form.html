@@ -1,0 +1,24 @@
+{% extends "layouts/app.html" %}
+{% from "macros/ui.html" import page_head, field, select, password_field with context %}
+{% block title %}Add user{% endblock %}
+{% block content %}
+{{ page_head('Add user', 'Create an account directly. Admin-created accounts are marked as email-verified.', [('Users', url_for('admin.users')), ('Add user', None)]) }}
+<div class="grid-main">
+  <form class="card card-lg" method="post" novalidate data-dirty-guard>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="form-grid">
+      {{ field('full_name', 'Full name', form.full_name, errors=errors, required=True, autocomplete='off', maxlength=120, icon_name='user') }}
+      {{ field('email', 'Email address', form.email, 'email', errors=errors, required=True, autocomplete='off', maxlength=254, icon_name='mail') }}
+    </div>
+    {{ select('role', 'Role', [('student', 'Student'), ('admin', 'Administrator')], form.role, errors=errors, hint='Administrators can manage every user, quiz and result. Grant sparingly.') }}
+    {{ password_field('password', 'Temporary password', errors=errors, autocomplete='new-password', strength=True, hint='At least 10 characters with upper and lower case, a number and a symbol. Share it securely; ask the user to change it.') }}
+    <div class="row mt-2"><button class="btn btn-primary" type="submit">{{ icon('user-plus') }} Create user</button><a class="btn btn-ghost" href="{{ url_for('admin.users') }}">Cancel</a></div>
+  </form>
+  <aside class="card"><h2 style="margin-top:0;font-size:1.05rem">{{ icon('info') }} Good practice</h2>
+    <ul class="list-plain text-sm" style="color:var(--ink-2)">
+      <li>Prefer asking students to self-register — they verify their own email.</li>
+      <li>Never share one admin account; create one per person so the audit log stays meaningful.</li>
+      <li>You can send a password-reset link from the user’s page instead of sharing a password.</li>
+    </ul></aside>
+</div>
+{% endblock %}

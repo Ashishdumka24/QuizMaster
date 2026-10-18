@@ -1,0 +1,69 @@
+{% extends "layouts/app.html" %}
+{% from "macros/ui.html" import page_head, avatar, status_badge, score_pill, empty with context %}
+{% block title %}{{ user.full_name }}{% endblock %}
+{% block content %}
+{% set me = user.id == current_user.id %}
+{{ page_head(user.full_name, user.email, [('Users', url_for('admin.users')), (user.full_name, None)]) }}
+<div class="grid-side">
+  <aside class="stack" style="--gap:1.25rem">
+    <section class="card card-lg text-center">
+      {{ avatar(user, 'avatar-xl') }}
+      <h2 style="margin:.8rem 0 .2rem;font-size:1.2rem">{{ user.full_name }}</h2>
+      <div class="row" style="justify-content:center;gap:.35rem">
+        {% if user.is_admin %}<span class="badge badge-dark">{{ icon('shield') }} Admin</span>{% else %}<span class="badge badge-accent">Student</span>{% endif %}
+        {% if not user.is_active_account %}<span class="badge badge-bad">Disabled</span>{% elif user.is_locked %}<span class="badge badge-warn">Locked until {{ user.locked_until | dt('%I:%M %p') }}</span>{% endif %}
+        {% if user.is_verified %}<span class="badge badge-ok">{{ icon('check') }} Verified</span>{% else %}<span class="badge badge-warn">Unverified</span>{% endif %}
+      </div>
+      <ul class="list-divided text-sm text-left mt-2">
+        <li class="row-between"><span class="text-muted">Joined</span><span>{{ user.created_at | dt('%d %b %Y') }}</span></li>
+        <li class="row-between"><span class="text-muted">Last login</span><span>{{ user.last_login_at | ago }}</span></li>
+        <li class="row-between"><span class="text-muted">Last seen</span><span>{{ user.last_seen_at | ago }}</span></li>
+        {% if user.institution %}<li class="row-between"><span class="text-muted">Institution</span><span>{{ user.institution }}</span></li>{% endif %}
+        {% if user.program %}<li class="row-between"><span class="text-muted">Programme</span><span>{{ user.program }}</span></li>{% endif %}
+        {% if user.phone %}<li class="row-between"><span class="text-muted">Phone</span><span>{{ user.phone }}</span></li>{% endif %}
+        <li class="row-between"><span class="text-muted">Failed logins</span><span>{{ user.failed_logins }}</span></li>
+      </ul>
+    </section>
+    <section class="card">
+      <h2 style="margin-top:0;font-size:1.05rem">Actions</h2>
+      {% macro act(action, label, ic, cls='btn-soft', confirm=None, danger=False) -%}
+      <form method="post" action="{{ url_for('admin.user_action', user_id=user.id) }}"{% if confirm %} data-confirm="{{ confirm }}" data-confirm-ok="{{ label }}"{% if not danger %} data-confirm-danger="false"{% endif %}{% endif %}>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="action" value="{{ action }}">
+        <button class="btn {{ cls }} btn-block btn-sm" type="submit">{{ icon(ic) }} {{ label }}</button></form>
+      {%- endmacro %}
+      <div class="stack" style="--gap:.5rem">
+        {% if not user.is_verified %}{{ act('verify', 'Mark email verified', 'check-circle', confirm='Only do this if you have confirmed the person controls this email address.') }}{% endif %}
+        {% if user.is_locked %}{{ act('unlock', 'Clear login lock', 'key') }}{% endif %}
+        {{ act('reset_link', 'Email password-reset link', 'mail', confirm='A single-use reset link valid for 30 minutes will be emailed to ' ~ user.email ~ '.') }}
+        {% if not me %}
+          {% if user.is_admin %}{{ act('make_student', 'Change role to student', 'user', confirm='This removes administrator access and signs them out.', danger=True) }}
+          {% else %}{{ act('make_admin', 'Promote to administrator', 'shield', 'btn-ghost', 'Administrators can manage all users, quizzes and results. Continue?', True) }}{% endif %}
+          {% if user.is_active_account %}{{ act('disable', 'Disable account', 'lock', 'btn-danger-soft', 'The user will be signed out immediately and cannot log in until re-enabled.', True) }}
+          {% else %}{{ act('enable', 'Re-enable account', 'unlock', 'btn-success') }}{% endif %}
+        {% else %}<p class="text-xs text-muted" style="margin:0">You can’t change your own role or disable your own account.</p>{% endif %}
+      </div>
+    </section>
+    {% if not me and not attempts %}
+    <section class="card" style="border-color:color-mix(in srgb,var(--red) 35%,transparent)">
+      <h2 style="margin-top:0;font-size:1.05rem" class="bad">Delete permanently</h2>
+      <p class="text-xs text-muted">Only possible for users without quiz history. Type <b>{{ user.email }}</b> to confirm.</p>
+      <form method="post" action="{{ url_for('admin.user_action', user_id=user.id) }}" data-confirm="This permanently deletes {{ user.full_name }}. This cannot be undone." data-confirm-ok="Delete user">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="action" value="delete">
+        <label class="sr-only" for="confirm_email">Confirm email</label><input class="input" id="confirm_email" name="confirm_email" autocomplete="off" placeholder="{{ user.email }}" required>
+        <button class="btn btn-danger btn-sm btn-block mt-1" type="submit">{{ icon('trash') }} Delete user</button></form>
+    </section>
+    {% endif %}
+  </aside>
+  <div class="stack" style="--gap:1.25rem">
+    <section class="card card-flush"><div class="card-head" style="padding:1.1rem 1.2rem 0"><h2>Recent attempts</h2><a class="btn btn-ghost btn-xs" href="{{ url_for('admin.results', q=user.email) }}">All results</a></div>
+      {% if attempts %}<div class="table-wrap"><table class="table table-stack"><thead><tr><th>Quiz</th><th>#</th><th>Status</th><th>Score</th><th>Started</th><th></th></tr></thead><tbody>
+      {% for a in attempts %}<tr><td data-label="Quiz">{{ a.quiz.title }}</td><td data-label="Attempt">{{ a.attempt_number }}</td><td data-label="Status">{{ status_badge(a.status) }}</td><td data-label="Score">{{ score_pill(a.percentage) if a.is_finished else '—' }}</td><td data-label="Started">{{ a.started_at | dt }}</td><td class="text-right"><a class="btn btn-soft btn-xs" href="{{ url_for('admin.attempt_detail', attempt_id=a.id) }}">Review</a></td></tr>{% endfor %}
+      </tbody></table></div>{% else %}<div style="padding:1rem">{{ empty('No attempts', 'This user has not attempted any quiz.', 'layers') }}</div>{% endif %}
+    </section>
+    <section class="card"><div class="card-head"><h2>Account activity</h2><a class="btn btn-ghost btn-xs" href="{{ url_for('admin.audit', user=user.email) }}">Full audit trail</a></div>
+      {% for l in logs %}<div class="activity-item"><span class="activity-ic">{{ icon('activity') }}</span><div style="min-width:0;flex:1"><div class="text-sm fw-600">{{ l.action | replace('_', ' ') | capitalize }}</div><div class="text-xs text-muted truncate">{{ l.details or '' }}{% if l.ip_address %} · {{ l.ip_address }}{% endif %} · {{ l.created_at | dt }}</div></div></div>
+      {% else %}<p class="text-sm text-muted" style="margin:0">No recorded activity.</p>{% endfor %}
+    </section>
+  </div>
+</div>
+{% endblock %}

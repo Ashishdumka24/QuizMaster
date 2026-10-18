@@ -1,0 +1,86 @@
+{% extends "layouts/app.html" %}
+{% from "macros/ui.html" import page_head, field, textarea, select, checkbox, status_badge with context %}
+{% set is_new = not quiz.id %}
+{% block title %}{{ 'New quiz' if is_new else 'Edit ' ~ quiz.title }}{% endblock %}
+{% block content %}
+{% set P = request.method == 'POST' %}
+{% set F = request.form %}
+{% macro v(name, default) %}{{ F.get(name, '') if P else default }}{% endmacro %}
+{% macro flag(name) %}{{ (F.get(name) is not none) if P else quiz[name] }}{% endmacro %}
+{% call page_head('New quiz' if is_new else quiz.title, 'Quiz settings. Students see title, description, instructions and rules before starting.' if is_new else None, [('Quizzes', url_for('admin.quizzes')), ('New' if is_new else 'Edit', None)]) %}
+  {% if not is_new %}
+    {{ status_badge(quiz.status) }}
+    <a class="btn btn-soft" href="{{ url_for('admin.quiz_questions', quiz_id=quiz.id) }}">{{ icon('list-checks') }} Questions ({{ quiz.question_count }})</a>
+    <a class="btn btn-ghost" href="{{ url_for('admin.quiz_preview', quiz_id=quiz.id) }}">{{ icon('eye') }} Preview</a>
+  {% endif %}
+{% endcall %}
+{% if problems %}<div class="alert alert-warning">{{ icon('alert') }}<div><b>Not ready to publish:</b><ul style="margin:.3rem 0 0;padding-left:1.1rem">{% for p in problems %}<li>{{ p }}</li>{% endfor %}</ul></div></div>{% endif %}
+<form method="post" novalidate data-dirty-guard>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="grid-main">
+    <div class="stack" style="--gap:1.25rem">
+      <section class="card card-lg"><h2 class="form-section">{{ icon('edit') }} Basics</h2>
+        {{ field('title', 'Title', v('title', quiz.title or ''), errors=errors, required=True, maxlength=150) }}
+        {{ textarea('description', 'Short description', v('description', quiz.description or ''), rows=3, maxlength=3000, hint='Shown on quiz cards and the detail page.', attrs='data-counter') }}
+        <div class="form-grid">
+          <div class="field"><label class="label" for="f-category_id">Category</label>
+            <select class="select" id="f-category_id" name="category_id"><option value="">— None —</option>{% set cur = v('category_id', quiz.category_id or '') | string %}{% for c in categories %}<option value="{{ c.id }}"{{ ' selected' if cur == c.id | string }}>{{ c.name }}</option>{% endfor %}</select>
+            {% if errors.category_id %}<p class="error-text">{{ errors.category_id }}</p>{% endif %}</div>
+          {{ select('difficulty', 'Difficulty', [('easy', 'Easy'), ('medium', 'Medium'), ('hard', 'Hard')], v('difficulty', quiz.difficulty or 'medium')) }}
+        </div>
+        {{ field('tags', 'Tags', v('tags', quiz.tags or ''), hint='Comma-separated, e.g. python, basics', maxlength=330) }}
+      </section>
+      <section class="card card-lg"><h2 class="form-section">{{ icon('book') }} Instructions &amp; learning material</h2>
+        {{ textarea('instructions', 'Instructions shown before starting', v('instructions', quiz.instructions or ''), rows=4, maxlength=3000) }}
+        {{ textarea('learning_material', 'Preparation notes / reading list (optional)', v('learning_material', quiz.learning_material or ''), rows=4, maxlength=3000) }}
+      </section>
+      <section class="card card-lg"><h2 class="form-section">{{ icon('calendar') }} Schedule</h2>
+        <div class="form-grid">
+          {{ field('start_at', 'Opens at (IST)', v('start_at', quiz.start_at | local_input), 'datetime-local', errors=errors, hint='Leave blank to open immediately when published.') }}
+          {{ field('end_at', 'Closes at (IST)', v('end_at', quiz.end_at | local_input), 'datetime-local', errors=errors, hint='Leave blank for no deadline.') }}
+        </div>
+        <p class="text-xs text-muted" style="margin:0">An attempt’s deadline is the earlier of its time limit and the closing time — the server enforces both.</p>
+      </section>
+    </div>
+    <aside class="stack" style="--gap:1.25rem">
+      <section class="card card-lg"><h2 class="form-section">{{ icon('sliders') }} Rules</h2>
+        <div class="form-grid">
+          {{ field('time_limit_minutes', 'Time limit (min)', v('time_limit_minutes', quiz.time_limit_minutes), 'number', errors=errors, required=True, min=1, max=600) }}
+          {{ field('pass_percentage', 'Pass mark (%)', v('pass_percentage', '%g' | format(quiz.pass_percentage)), 'number', errors=errors, required=True, min=0, max=100, step='0.5') }}
+        </div>
+        {{ field('max_attempts', 'Maximum attempts', v('max_attempts', quiz.max_attempts), 'number', errors=errors, min=0, max=100, hint='0 = unlimited') }}
+        {{ checkbox('negative_marking', 'Negative marking', flag('negative_marking') == 'True', hint='Deduct each question’s negative marks for wrong answers (total never below 0).', switch=True) }}
+        {{ checkbox('shuffle_questions', 'Shuffle question order', flag('shuffle_questions') == 'True', switch=True) }}
+        {{ checkbox('shuffle_options', 'Shuffle answer options', flag('shuffle_options') == 'True', switch=True) }}
+        {{ checkbox('featured', 'Feature on homepage & explore', flag('featured') == 'True', switch=True) }}
+      </section>
+      <section class="card card-lg"><h2 class="form-section">{{ icon('eye') }} Results</h2>
+        {{ select('result_release', 'Release results', RELEASE_POLICIES.items() | list, v('result_release', quiz.result_release), errors=errors) }}
+        {{ checkbox('show_correct_answers', 'Show correct answers after release', flag('show_correct_answers') == 'True', switch=True) }}
+        {{ checkbox('show_explanations', 'Show explanations after release', flag('show_explanations') == 'True', switch=True) }}
+        {% if not is_new and quiz.result_release != 'immediate' %}
+        <p class="text-xs text-muted">Results are currently <b>{{ 'published' if quiz.results_published else 'hidden' }}</b>. Use the buttons below the form.</p>{% endif %}
+      </section>
+      <div class="card row" style="position:sticky;bottom:1rem;z-index:5">
+        <button class="btn btn-primary" type="submit">{{ icon('check') }} {{ 'Create quiz' if is_new else 'Save settings' }}</button>
+        <a class="btn btn-ghost" href="{{ url_for('admin.quizzes') }}">Cancel</a>
+      </div>
+    </aside>
+  </div>
+</form>
+{% if not is_new %}
+<section class="card mt-3"><h2 style="margin-top:0;font-size:1.1rem">Lifecycle</h2>
+  <p class="text-sm text-muted">Draft → Published → Closed → Archived. Archived quizzes are hidden but their results are kept. Quizzes with attempts cannot be deleted.</p>
+  <div class="row">
+    {% for target, label, ic, cls in [('published', 'Publish', 'send', 'btn-success'), ('closed', 'Close', 'lock', 'btn-soft'), ('draft', 'Back to draft', 'edit', 'btn-ghost'), ('archived', 'Archive', 'archive', 'btn-ghost')] if target != quiz.status %}
+    <form method="post" action="{{ url_for('admin.quiz_status', quiz_id=quiz.id) }}"{% if target in ('closed', 'archived', 'draft') %} data-confirm="{{ label }} this quiz? Students {{ 'will not be able to start it' }}." data-confirm-ok="{{ label }}" data-confirm-danger="false"{% endif %}><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="status" value="{{ target }}"><button class="btn {{ cls }}" type="submit">{{ icon(ic) }} {{ label }}</button></form>
+    {% endfor %}
+    {% if quiz.result_release != 'immediate' %}
+    <form method="post" action="{{ url_for('admin.quiz_publish_results', quiz_id=quiz.id) }}" data-confirm="{{ 'Hide results from students again?' if quiz.results_published else 'Release results to every student who submitted this quiz? They will be notified.' }}" data-confirm-ok="{{ 'Hide results' if quiz.results_published else 'Release results' }}" data-confirm-danger="false"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="publish" value="{{ '0' if quiz.results_published else '1' }}"><button class="btn btn-warm" type="submit">{{ icon('award') }} {{ 'Hide results' if quiz.results_published else 'Release results now' }}</button></form>
+    {% endif %}
+    <form method="post" action="{{ url_for('admin.quiz_duplicate', quiz_id=quiz.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-ghost" type="submit">{{ icon('copy') }} Duplicate</button></form>
+    <form method="post" action="{{ url_for('admin.quiz_delete', quiz_id=quiz.id) }}" data-confirm="Delete “{{ quiz.title }}” permanently? Questions stay in the question bank." data-confirm-ok="Delete quiz"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-danger-soft" type="submit">{{ icon('trash') }} Delete</button></form>
+  </div>
+</section>
+{% endif %}
+{% endblock %}

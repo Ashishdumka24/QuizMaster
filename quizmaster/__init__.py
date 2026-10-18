@@ -16,7 +16,7 @@ from werkzeug.exceptions import HTTPException
 from config import get_config
 
 from .extensions import compress, csrf, db, limiter, login_manager, migrate
-from .utils import fmt_dt, fmt_duration, iso_utc, time_ago, to_local, utcnow
+from .utils import fmt_dt, fmt_duration, iso_utc, time_ago, to_local, utc_to_local_input, utcnow
 
 # Endpoints whose processing time is recorded as a TQM CTQ metric.
 METRIC_ENDPOINTS = {"quiz.api_save", "quiz.api_submit", "quiz.api_state", "quiz.start"}
@@ -201,7 +201,8 @@ def _register_template_helpers(app: Flask) -> None:
     from .models import QUESTION_TYPES, RELEASE_POLICIES
     from .security import dashboard_url_for
 
-    app.jinja_env.filters.update(dt=fmt_dt, duration=fmt_duration, ago=time_ago, iso=iso_utc, local=to_local)
+    app.jinja_env.filters.update(dt=fmt_dt, duration=fmt_duration, ago=time_ago, iso=iso_utc, local=to_local,
+                                  local_input=utc_to_local_input)
     from .icons import JS_ICONS, icon, logo_svg
     app.jinja_env.globals.update(icon=icon, logo_svg=logo_svg, JS_ICONS=JS_ICONS)
     app.jinja_env.trim_blocks = True

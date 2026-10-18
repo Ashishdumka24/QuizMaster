@@ -1,0 +1,47 @@
+{% extends "layouts/app.html" %}
+{% from "macros/ui.html" import page_head, field, textarea, empty with context %}
+{% block title %}Categories{% endblock %}
+{% block content %}
+{{ page_head('Categories', 'Subjects used to organise quizzes and the question bank.') }}
+<div class="grid-main">
+  <section>
+    {% if rows %}
+    <div class="grid grid-2">
+      {% for c, nq, nques in rows %}
+      <article class="card cat-admin" style="--cat: {{ c.color }}">
+        <div class="row" style="gap:.8rem;flex-wrap:nowrap"><span class="cat-ic" style="background:{{ c.color }}">{{ icon(c.icon) }}</span>
+          <div style="min-width:0;flex:1"><h3 style="margin:0;font-size:1.05rem">{{ c.name }}</h3><div class="text-xs text-muted">{{ nq }} quiz{{ 'zes' if nq != 1 }} · {{ nques }} question{{ 's' if nques != 1 }}</div></div></div>
+        {% if c.description %}<p class="text-sm text-muted" style="margin:.6rem 0 0">{{ c.description }}</p>{% endif %}
+        <div class="row mt-2">
+          <a class="btn btn-soft btn-xs" href="{{ url_for('admin.categories', edit=c.id) }}#cat-form">{{ icon('edit') }} Edit</a>
+          <a class="btn btn-ghost btn-xs" href="{{ url_for('admin.quizzes', category=c.id) }}">Quizzes</a>
+          <a class="btn btn-ghost btn-xs" href="{{ url_for('admin.questions', category=c.id) }}">Questions</a>
+          {% if not nq and not nques %}
+          <form method="post" action="{{ url_for('admin.category_delete', cat_id=c.id) }}" data-confirm="Delete the category “{{ c.name }}”?" data-confirm-ok="Delete"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-danger-soft btn-xs" type="submit">{{ icon('trash') }} Delete</button></form>
+          {% endif %}
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+    {% else %}<div class="card">{{ empty('No categories yet', 'Create the first subject using the form.', 'folder') }}</div>{% endif %}
+  </section>
+  {% set edit_id = request.args.get('edit', '') | int %}
+  {% set editing = (rows | selectattr('0.id', 'equalto', edit_id) | map(attribute='0') | first) if edit_id else none %}
+  {% set F = request.form if request.method == 'POST' else {} %}
+  <aside>
+    <form id="cat-form" class="card card-lg" method="post" style="position:sticky;top:calc(var(--topbar-h) + 1rem)">
+      <h2 style="margin-top:0;font-size:1.1rem">{{ ('Edit “' ~ editing.name ~ '”') if editing else 'New category' }}</h2>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      {% if editing or F.get('id') %}<input type="hidden" name="id" value="{{ editing.id if editing else F.get('id') }}">{% endif %}
+      {{ field('name', 'Name', F.get('name', editing.name if editing else ''), errors=errors, required=True, maxlength=80) }}
+      {{ textarea('description', 'Description', F.get('description', (editing.description or '') if editing else ''), rows=2, maxlength=300) }}
+      <div class="field"><label class="label" for="f-color">Colour</label>
+        <input class="input" type="color" id="f-color" name="color" value="{{ F.get('color', editing.color if editing else '#6366F1') }}" style="height:44px;padding:4px"></div>
+      <fieldset class="field"><legend class="label">Icon</legend>
+        <div class="icon-pick">{% set cur = F.get('icon', editing.icon if editing else 'book') %}
+          {% for ic in icons %}<label title="{{ ic }}"><input type="radio" name="icon" value="{{ ic }}"{{ ' checked' if ic == cur }}><span>{{ icon(ic, label=ic) }}</span></label>{% endfor %}</div></fieldset>
+      <div class="row"><button class="btn btn-primary" type="submit">{{ icon('check') }} {{ 'Save changes' if editing else 'Create category' }}</button>{% if editing %}<a class="btn btn-ghost" href="{{ url_for('admin.categories') }}">Cancel</a>{% endif %}</div>
+    </form>
+  </aside>
+</div>
+{% endblock %}

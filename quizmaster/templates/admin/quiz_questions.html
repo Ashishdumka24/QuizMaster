@@ -1,0 +1,60 @@
+{% extends "layouts/app.html" %}
+{% from "macros/ui.html" import page_head, pagination, difficulty_badge, status_badge, empty with context %}
+{% block title %}Questions · {{ quiz.title }}{% endblock %}
+{% block content %}
+{% call page_head(quiz.title, 'Assign, order and remove questions. Editing a question never changes results already recorded.', [('Quizzes', url_for('admin.quizzes')), (quiz.title, url_for('admin.quiz_edit', quiz_id=quiz.id)), ('Questions', None)]) %}
+  {{ status_badge(quiz.status) }}
+  <a class="btn btn-ghost" href="{{ url_for('admin.quiz_preview', quiz_id=quiz.id) }}">{{ icon('eye') }} Preview</a>
+  <a class="btn btn-primary" href="{{ url_for('admin.question_new', quiz_id=quiz.id) }}">{{ icon('plus') }} New question here</a>
+{% endcall %}
+{% if problems %}<div class="alert alert-warning">{{ icon('alert') }}<div><b>Before publishing:</b> {{ problems | join(' ') }}</div></div>
+{% elif quiz.status == 'draft' %}<div class="alert alert-success">{{ icon('check-circle') }}<div>This quiz is ready. <form method="post" action="{{ url_for('admin.quiz_status', quiz_id=quiz.id) }}" style="display:inline"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="status" value="published"><button class="btn btn-success btn-xs" type="submit">{{ icon('send') }} Publish now</button></form></div></div>{% endif %}
+<div class="grid grid-2" style="align-items:start">
+  <section class="card card-flush">
+    <div class="card-head" style="padding:1.1rem 1.2rem .4rem"><h2>In this quiz <span class="badge badge-accent">{{ quiz.question_links | length }}</span></h2><span class="text-sm text-muted">{{ '%g' | format(quiz.total_marks) }} marks</span></div>
+    {% if quiz.question_links %}
+    <ol class="list-divided q-assigned">
+      {% for link in quiz.question_links %}{% set qq = link.question %}
+      <li class="row" style="flex-wrap:nowrap;align-items:flex-start;padding:.75rem 1.2rem">
+        <span class="q-num">{{ loop.index }}</span>
+        <div style="flex:1;min-width:0">
+          <div class="text-sm fw-600 clamp-2">{{ qq.text }}</div>
+          <div class="row text-xs text-muted" style="gap:.35rem;margin-top:.25rem"><span class="badge badge-outline">{{ qq.type_label }}</span>{{ difficulty_badge(qq.difficulty) }}<span>{{ '%g' | format(qq.marks) }} mark{{ 's' if qq.marks != 1 }}</span>{% if qq.is_archived %}<span class="badge badge-bad">Archived — skipped</span>{% endif %}</div>
+        </div>
+        <div class="row" style="gap:.2rem;flex-wrap:nowrap">
+          {% for act, ic, lbl in [('up', 'chevron-up', 'Move up'), ('down', 'chevron-down', 'Move down')] %}
+          <form method="post" action="{{ url_for('admin.quiz_questions_update', quiz_id=quiz.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="action" value="{{ act }}"><input type="hidden" name="question_id" value="{{ qq.id }}"><button class="btn btn-ghost btn-xs btn-icon" type="submit" title="{{ lbl }}" aria-label="{{ lbl }}">{{ icon(ic) }}</button></form>
+          {% endfor %}
+          <a class="btn btn-ghost btn-xs btn-icon" href="{{ url_for('admin.question_edit', question_id=qq.id, quiz_id=quiz.id) }}" title="Edit question" aria-label="Edit question">{{ icon('edit') }}</a>
+          <form method="post" action="{{ url_for('admin.quiz_questions_update', quiz_id=quiz.id) }}" data-confirm="Remove this question from the quiz? It stays in the question bank." data-confirm-ok="Remove"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="action" value="remove"><input type="hidden" name="question_id" value="{{ qq.id }}"><button class="btn btn-danger-soft btn-xs btn-icon" type="submit" title="Remove" aria-label="Remove from quiz">{{ icon('x') }}</button></form>
+        </div>
+      </li>
+      {% endfor %}
+    </ol>
+    {% else %}<div style="padding:1rem">{{ empty('No questions yet', 'Pick from the bank on the right or create a new one.', 'list-checks') }}</div>{% endif %}
+  </section>
+
+  <section class="card card-flush">
+    <div class="card-head" style="padding:1.1rem 1.2rem .4rem"><h2>Add from question bank</h2><a class="btn btn-ghost btn-xs" href="{{ url_for('admin.questions_import') }}">{{ icon('upload') }} Import</a></div>
+    <form class="filters" method="get" style="padding:0 1.2rem;margin-bottom:.5rem">
+      <div class="grow">{{ icon('search') }}<label class="sr-only" for="qb-q">Search bank</label><input class="input" id="qb-q" type="search" name="q" value="{{ search }}" placeholder="Search question text…"></div>
+      <label class="sr-only" for="qb-c">Category</label><select class="select" id="qb-c" name="category" data-autosubmit><option value="">All categories</option>{% for c in categories %}<option value="{{ c.id }}"{{ ' selected' if cat == c.id }}>{{ c.name }}</option>{% endfor %}</select>
+    </form>
+    {% if page.items %}
+    <form method="post" action="{{ url_for('admin.quiz_questions_update', quiz_id=quiz.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="action" value="add">{% if search %}<input type="hidden" name="q" value="{{ search }}">{% endif %}
+      <div class="row-between" style="padding:.2rem 1.2rem"><label class="check"><input type="checkbox" data-check-all="question_ids"><span class="text-sm">Select all on this page</span></label>
+        <button class="btn btn-primary btn-sm" type="submit">{{ icon('plus') }} Add selected</button></div>
+      <ul class="list-divided">
+        {% for qq in page.items %}
+        <li style="padding:.6rem 1.2rem"><label class="check" style="align-items:flex-start"><input type="checkbox" name="question_ids" value="{{ qq.id }}">
+          <span style="min-width:0"><span class="text-sm clamp-2" style="display:block">{{ qq.text }}</span>
+            <span class="row text-xs text-muted" style="gap:.35rem;margin-top:.2rem"><span class="badge badge-outline">{{ qq.type_label }}</span>{{ difficulty_badge(qq.difficulty) }}{% if qq.category %}<span>{{ qq.category.name }}</span>{% endif %}<span>{{ '%g' | format(qq.marks) }} mk</span></span></span></label></li>
+        {% endfor %}
+      </ul>
+    </form>
+    <div style="padding:0 1.2rem 1rem">{{ pagination(page, 'admin.quiz_questions', quiz_id=quiz.id) }}</div>
+    {% else %}<div style="padding:1rem">{{ empty('Nothing to add', 'All matching questions are already in this quiz, or the bank is empty.', 'database', url_for('admin.question_new', quiz_id=quiz.id), 'Create a question', 'plus') }}</div>{% endif %}
+  </section>
+</div>
+{% endblock %}

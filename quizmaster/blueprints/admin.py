@@ -12,7 +12,7 @@ from ..extensions import db, limiter
 from ..models import (DIFFICULTIES, QUESTION_TYPES, QUIZ_STATUSES, RELEASE_POLICIES, Announcement, AttemptAnswer,
                       AuditLog, Category, EmailOTP, ErrorLog, Feedback, Notification, PasswordResetToken, Question,
                       Quiz, QuizAttempt, QuizQuestion, RequestMetric, SupportMessage, User, Defect)
-from ..security import admin_required, json_ok, valid_email, valid_name, validate_password
+from ..security import admin_required, json_ok, safe_back, valid_email, valid_name, validate_password
 from ..services import backup as backup_svc
 from ..services.attempts import finalize_overdue
 from ..services.core import (SETTING_DEFAULTS, cache, get_setting, log_action, notify, notify_role, set_setting)
@@ -432,7 +432,7 @@ def quiz_status(quiz_id):
         problems = publish_problems(quiz)
         if problems:
             flash("Cannot publish yet: " + " ".join(problems), "error")
-            return redirect(request.referrer or url_for("admin.quizzes"))
+            return redirect(safe_back(url_for("admin.quizzes")))
         if not quiz.published_at:
             quiz.published_at = utcnow()
             notify_role("student", f"New quiz: {quiz.title}", (quiz.description or "")[:140],
@@ -443,7 +443,7 @@ def quiz_status(quiz_id):
     db.session.commit()
     cache.clear()
     flash(f"“{quiz.title}” is now {target}.", "success")
-    return redirect(request.referrer or url_for("admin.quizzes"))
+    return redirect(safe_back(url_for("admin.quizzes")))
 
 
 @bp.route("/quizzes/<int:quiz_id>/publish-results", methods=["POST"])
@@ -461,7 +461,7 @@ def quiz_publish_results(quiz_id):
     db.session.commit()
     cache.clear()
     flash("Results published to students." if publish else "Results hidden from students.", "success")
-    return redirect(request.referrer or url_for("admin.quizzes"))
+    return redirect(safe_back(url_for("admin.quizzes")))
 
 
 @bp.route("/quizzes/<int:quiz_id>/duplicate", methods=["POST"])
@@ -719,7 +719,7 @@ def question_action(question_id):
                           and l.quiz.question_count <= 1]
         if published_only:
             flash(f"Cannot archive: it is the only question in published quiz “{published_only[0].title}”.", "error")
-            return redirect(request.referrer or url_for("admin.questions"))
+            return redirect(safe_back(url_for("admin.questions")))
         question.is_archived = True
         log_action("question_archived", "question", question.id)
         flash("Question archived. It is hidden from quizzes but kept for history.", "success")
@@ -730,7 +730,7 @@ def question_action(question_id):
     elif action == "delete":
         if question.quiz_links:
             flash("This question is used in a quiz. Remove it from quizzes or archive it instead.", "error")
-            return redirect(request.referrer or url_for("admin.questions"))
+            return redirect(safe_back(url_for("admin.questions")))
         img = question.image_filename
         log_action("question_deleted", "question", question.id, question.text[:80])
         db.session.delete(question)
@@ -742,7 +742,7 @@ def question_action(question_id):
         abort(400)
     db.session.commit()
     cache.clear("admin:")
-    return redirect(request.referrer or url_for("admin.questions"))
+    return redirect(safe_back(url_for("admin.questions")))
 
 
 @bp.route("/api/questions/similar")
@@ -1061,7 +1061,7 @@ def inbox_update(kind, item_id):
     log_action(f"{kind}_updated", kind, item.id, f"status={item.status}")
     db.session.commit()
     flash("Saved.", "success")
-    return redirect(request.referrer or url_for("admin.inbox", tab=kind))
+    return redirect(safe_back(url_for("admin.inbox", tab=kind)))
 
 
 # ---------------------------------------------------------------------------

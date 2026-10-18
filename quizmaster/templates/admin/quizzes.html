@@ -1,0 +1,50 @@
+{% extends "layouts/app.html" %}
+{% from "macros/ui.html" import page_head, pagination, status_badge, difficulty_badge, empty with context %}
+{% block title %}Quizzes{% endblock %}
+{% block content %}
+{% call page_head('Quizzes', 'Create, schedule, publish and close quizzes.') %}
+  <a class="btn btn-ghost" href="{{ url_for('quiz.calendar_view') }}">{{ icon('calendar') }} Calendar</a>
+  <a class="btn btn-primary" href="{{ url_for('admin.quiz_new') }}">{{ icon('plus') }} New quiz</a>
+{% endcall %}
+<div class="tabs mb-2" role="tablist" aria-label="Quiz status">
+  <a class="tab{{ ' active' if not status }}" href="{{ url_for('admin.quizzes', q=search or None, category=cat or None) }}">All</a>
+  {% for s in statuses %}<a class="tab{{ ' active' if status == s }}" href="{{ url_for('admin.quizzes', status=s, q=search or None, category=cat or None) }}">{{ s | capitalize }}</a>{% endfor %}
+</div>
+<form class="filters" method="get" role="search">
+  {% if status %}<input type="hidden" name="status" value="{{ status }}">{% endif %}
+  <div class="grow">{{ icon('search') }}<label class="sr-only" for="qz-q">Search</label><input class="input" id="qz-q" type="search" name="q" value="{{ search }}" placeholder="Search by title…"></div>
+  <label class="sr-only" for="qz-c">Category</label><select class="select" id="qz-c" name="category" data-autosubmit><option value="">All categories</option>{% for c in categories %}<option value="{{ c.id }}"{{ ' selected' if cat == c.id }}>{{ c.name }}</option>{% endfor %}</select>
+  <button class="btn btn-soft" type="submit">Apply</button>
+</form>
+{% if page.items %}
+<div class="card card-flush"><div class="table-wrap"><table class="table table-stack">
+  <thead><tr><th>Quiz</th><th>Status</th><th>Questions</th><th>Time</th><th>Attempts</th><th>Window</th><th class="text-right">Actions</th></tr></thead>
+  <tbody>{% for q in page.items %}<tr>
+    <td data-label="Quiz"><a href="{{ url_for('admin.quiz_edit', quiz_id=q.id) }}"><b>{{ q.title }}</b></a>{% if q.featured %} <span class="badge badge-warn" title="Featured">★</span>{% endif %}
+      <div class="text-xs text-muted">{{ q.category.name if q.category else 'Uncategorised' }} · {{ difficulty_badge(q.difficulty) }}{% if q.result_release != 'immediate' %} · results {{ 'published' if q.results_published else ('after close' if q.result_release == 'after_close' else 'manual') }}{% endif %}</div></td>
+    <td data-label="Status">{{ status_badge(q.status) }}</td>
+    <td data-label="Questions">{{ q.question_count }}{% if not q.question_count %} <span class="badge badge-warn">none</span>{% endif %}</td>
+    <td data-label="Time">{{ q.time_limit_minutes }} min</td>
+    <td data-label="Attempts">{{ attempt_counts.get(q.id, 0) }}</td>
+    <td data-label="Window" class="text-xs">{% if q.start_at or q.end_at %}{{ q.start_at | dt('%d %b') if q.start_at else '…' }} → {{ q.end_at | dt('%d %b') if q.end_at else '…' }}{% else %}<span class="text-muted">Always</span>{% endif %}</td>
+    <td class="text-right"><div class="row" style="justify-content:flex-end;gap:.3rem;flex-wrap:nowrap">
+      <a class="btn btn-soft btn-xs" href="{{ url_for('admin.quiz_questions', quiz_id=q.id) }}" title="Questions">{{ icon('list-checks') }}<span class="sr-only">Questions</span></a>
+      <a class="btn btn-ghost btn-xs" href="{{ url_for('admin.quiz_preview', quiz_id=q.id) }}" title="Preview">{{ icon('eye') }}<span class="sr-only">Preview</span></a>
+      <div class="dropdown" data-dropdown><button class="btn btn-ghost btn-xs" type="button" aria-haspopup="true" aria-expanded="false" aria-label="More actions for {{ q.title }}">{{ icon('more') }}</button>
+        <div class="dropdown-menu dropdown-right" role="menu">
+          <a class="dropdown-item" href="{{ url_for('admin.quiz_edit', quiz_id=q.id) }}">{{ icon('edit') }} Edit settings</a>
+          <a class="dropdown-item" href="{{ url_for('admin.quiz_analysis', quiz_id=q.id) }}">{{ icon('bar-chart') }} Item analysis</a>
+          <a class="dropdown-item" href="{{ url_for('admin.results', quiz=q.id) }}">{{ icon('award') }} Results</a>
+          {% if q.status == 'published' %}<a class="dropdown-item" href="{{ url_for('quiz.detail', slug=q.slug) }}">{{ icon('external') }} Student view</a>{% endif %}
+          {% for target, label, ic in [('published', 'Publish', 'send'), ('closed', 'Close', 'lock'), ('draft', 'Move to draft', 'edit'), ('archived', 'Archive', 'archive')] if target != q.status %}
+          <form method="post" action="{{ url_for('admin.quiz_status', quiz_id=q.id) }}"{% if target in ('closed', 'archived') %} data-confirm="{{ label }} “{{ q.title }}”? Students will no longer be able to start it." data-confirm-ok="{{ label }}"{% endif %}><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="status" value="{{ target }}"><button class="dropdown-item" type="submit">{{ icon(ic) }} {{ label }}</button></form>
+          {% endfor %}
+          <form method="post" action="{{ url_for('admin.quiz_duplicate', quiz_id=q.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="dropdown-item" type="submit">{{ icon('copy') }} Duplicate</button></form>
+        </div></div>
+    </div></td>
+  </tr>{% endfor %}</tbody></table></div></div>
+{{ pagination(page, 'admin.quizzes') }}
+{% else %}
+<div class="card">{% if search or status or cat %}{{ empty('No quizzes match', 'Adjust the filters.', 'search', url_for('admin.quizzes'), 'Clear filters', 'x') }}{% else %}{{ empty('No quizzes yet', 'Create your first quiz, then add questions and publish.', 'layers', url_for('admin.quiz_new'), 'Create quiz', 'plus') }}{% endif %}</div>
+{% endif %}
+{% endblock %}

@@ -142,3 +142,15 @@ def apply_security_headers(response):
     if request.path.startswith(("/api/", "/auth/", "/admin", "/account")) or response.mimetype == "application/json":
         response.headers.setdefault("Cache-Control", "no-store")
     return response
+
+
+def safe_back(default: str) -> str:
+    """Return the Referer only when it points at this same host (prevents open redirects)."""
+    from urllib.parse import urlparse
+    from flask import request
+    ref = request.referrer
+    if ref:
+        parsed = urlparse(ref)
+        if parsed.netloc == request.host and parsed.scheme in ("http", "https"):
+            return parsed.path + (("?" + parsed.query) if parsed.query else "")
+    return default

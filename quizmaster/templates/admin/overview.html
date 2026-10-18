@@ -1,0 +1,71 @@
+{% extends "layouts/app.html" %}
+{% from "macros/ui.html" import page_head, stat, chart, avatar, empty with context %}
+{% block title %}Admin overview{% endblock %}
+{% block content %}
+{% set s = stats %}
+<section class="welcome welcome-admin fade-up">
+  <div>
+    <span class="badge badge-dark">{{ icon('shield') }} Administrator</span>
+    <h1>Control centre</h1>
+    <p>Live figures from the database{% if s.attempts_in_progress %} · <b>{{ s.attempts_in_progress }}</b> attempt{{ 's' if s.attempts_in_progress != 1 }} in progress right now{% endif %}.</p>
+    <div class="row mt-2">
+      <a class="btn btn-white" href="{{ url_for('admin.quiz_new') }}">{{ icon('plus') }} New quiz</a>
+      <a class="btn btn-ghost-light" href="{{ url_for('admin.question_new') }}">{{ icon('plus') }} Add question</a>
+      <a class="btn btn-ghost-light" href="{{ url_for('admin.questions_import') }}">{{ icon('upload') }} Import questions</a>
+      <a class="btn btn-ghost-light" href="{{ url_for('admin.announcements') }}">{{ icon('megaphone') }} Announce</a>
+    </div>
+  </div>
+  <div class="welcome-art" aria-hidden="true">{{ icon('activity', size=120) }}</div>
+</section>
+
+{% if email_mode != 'smtp' %}
+<div class="alert alert-dev mt-2">{{ icon('mail') }}<div><b>Email is in development-outbox mode.</b> OTP and reset emails are written to <code>instance/dev_outbox</code> and are <u>not delivered</u>. Configure SMTP in <code>.env</code> before real use — see <a href="{{ url_for('admin.settings') }}">Settings</a>.</div></div>
+{% endif %}
+
+<div class="grid grid-4 mt-3">
+  {{ stat('Students', s.students, 'users', 'indigo', s.new_7d ~ ' joined in the last 7 days') }}
+  {{ stat('Published quizzes', s.quizzes_published, 'layers', 'purple', s.quizzes_draft ~ ' draft · ' ~ s.quizzes_closed ~ ' closed') }}
+  {{ stat('Finished attempts', s.attempts_finished, 'check-circle', 'teal', (s.completion_rate ~ '% submitted before time-out') if s.completion_rate is not none else 'No attempts yet') }}
+  {{ stat('Average score', s.avg_score if s.avg_score is not none else '—', 'target', 'coral', ('Pass rate ' ~ s.pass_rate ~ '%') if s.pass_rate is not none else 'No graded attempts yet', '%' if s.avg_score is not none else '') }}
+</div>
+
+<div class="grid-main mt-3">
+  <section class="card"><div class="card-head"><h2>Attempts · last 14 days</h2><a class="btn btn-ghost btn-xs" href="{{ url_for('admin.analytics') }}">Analytics {{ icon('chevron-right') }}</a></div>
+    {{ chart('bar', s.attempts_series | map(attribute='label'), s.attempts_series | map(attribute='value'), 'Finished attempts per day for the last 14 days', 240, empty_text='No finished attempts in the last 14 days.') }}
+  </section>
+  <section class="card"><div class="card-head"><h2>Score distribution</h2></div>
+    {{ chart('bar', s.histogram | map(attribute='label'), s.histogram | map(attribute='value'), 'Number of attempts in each 10% score band', 240, empty_text='No graded attempts yet.') }}
+  </section>
+</div>
+
+<div class="grid grid-3 mt-3">
+  <section class="card"><div class="card-head"><h2>System health</h2><a class="btn btn-ghost btn-xs" href="{{ url_for('quality.overview') }}">TQM {{ icon('chevron-right') }}</a></div>
+    <ul class="list-divided">
+      <li class="row-between"><span>{{ icon('zap') }} Avg submission time</span><b>{{ (s.avg_submit_ms ~ ' ms') if s.avg_submit_ms is not none else '—' }}</b></li>
+      <li class="row-between"><span>{{ icon('bug') }} Open defects</span><a href="{{ url_for('quality.defects') }}"><b>{{ open_defects }}</b></a></li>
+      <li class="row-between"><span>{{ icon('inbox') }} Open support messages</span><a href="{{ url_for('admin.inbox') }}"><b>{{ open_support }}</b></a></li>
+      <li class="row-between"><span>{{ icon('mail') }} Email delivery</span>{% if email_mode == 'smtp' %}<span class="badge badge-ok">SMTP</span>{% else %}<span class="badge badge-warn">Dev outbox</span>{% endif %}</li>
+      <li class="row-between"><span>{{ icon('database') }} Active questions</span><b>{{ s.questions_active }}</b></li>
+      <li class="row-between"><span>{{ icon('user-check') }} Verified users</span><b>{{ s.verified }} / {{ s.users_total }}</b></li>
+    </ul>
+  </section>
+  <section class="card"><div class="card-head"><h2>Category performance</h2></div>
+    {{ chart('hbar', s.category_perf | map(attribute='label'), s.category_perf | map(attribute='value'), 'Average score by category', 220, 100, '%', 'No graded attempts yet.', s.category_perf | map(attribute='color')) }}
+  </section>
+  <section class="card"><div class="card-head"><h2>Most attempted</h2><a class="btn btn-ghost btn-xs" href="{{ url_for('admin.quizzes') }}">All quizzes</a></div>
+    {% for t in s.top_quizzes %}<div class="activity-item"><span class="activity-ic">{{ loop.index }}</span><div style="flex:1;min-width:0"><div class="truncate fw-600">{{ t.title }}</div><div class="text-xs text-muted">{{ t.attempts }} attempt{{ 's' if t.attempts != 1 }} · avg {{ t.avg }}%</div></div></div>
+    {% else %}{{ empty('No attempts yet', 'Publish a quiz and share it with students.', 'layers') }}{% endfor %}
+  </section>
+</div>
+
+<div class="grid grid-2 mt-3">
+  <section class="card"><div class="card-head"><h2>Recent activity</h2><a class="btn btn-ghost btn-xs" href="{{ url_for('admin.audit') }}">Audit log</a></div>
+    {% for l in activity %}<div class="activity-item"><span class="activity-ic">{{ icon('activity') }}</span><div style="flex:1;min-width:0"><div class="text-sm"><b>{{ l.user.full_name if l.user else 'System' }}</b> · {{ l.action | replace('_', ' ') }}</div><div class="text-xs text-muted truncate">{{ l.details or '' }} · {{ l.created_at | ago }}</div></div></div>
+    {% else %}<p class="text-sm text-muted">No activity recorded yet.</p>{% endfor %}
+  </section>
+  <section class="card"><div class="card-head"><h2>New registrations</h2><a class="btn btn-ghost btn-xs" href="{{ url_for('admin.users') }}">All users</a></div>
+    {% for u in registrations %}<a class="activity-item" href="{{ url_for('admin.user_detail', user_id=u.id) }}">{{ avatar(u, 'avatar-sm') }}<div style="flex:1;min-width:0"><div class="fw-600 truncate">{{ u.full_name }}</div><div class="text-xs text-muted truncate">{{ u.email }} · {{ u.created_at | ago }}</div></div>{% if not u.is_verified %}<span class="badge badge-warn">Unverified</span>{% elif u.is_admin %}<span class="badge badge-dark">Admin</span>{% endif %}</a>
+    {% else %}<p class="text-sm text-muted">No users yet.</p>{% endfor %}
+  </section>
+</div>
+{% endblock %}
