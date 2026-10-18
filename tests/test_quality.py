@@ -69,3 +69,12 @@ def test_exports(admin_client):
                 "/admin/quality/fmea/export?format=csv"):
         r = admin_client.get(url)
         assert r.status_code == 200 and r.data, url
+
+
+def test_no_missing_icons_after_rendering(admin_client, student_client):
+    from quizmaster.icons import MISSING_ICONS
+    for url in PAGES:
+        admin_client.get(url)
+    for url in ("/student/dashboard", "/explore", "/student/history", "/account/profile", "/account/settings"):
+        student_client.get(url)
+    assert not MISSING_ICONS, sorted(MISSING_ICONS)
