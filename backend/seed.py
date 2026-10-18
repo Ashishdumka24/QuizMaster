@@ -370,7 +370,7 @@ DEVELOPMENT_DEFECTS = [
      "Pre-commit checklist in README: pytest -q and QM_STRICT_TEMPLATES=1 pytest -q must pass", "development"),
     ("Quality-goal feature mapping did not match the guideline wording", "Documentation", "People", "Medium",
      "TQM centre / SIPOC page", "Q01–Q20 mapping was first written from memory instead of the guideline PDF",
-     "Q01–Q20 transcribed verbatim from the BBAT104 guideline into quizmaster/quality_goals.py",
+     "Q01–Q20 transcribed verbatim from the BBAT104 guideline into backend/quality_goals.py",
      "Traceability matrix always cites the source document; reviewed against the PDF", "development"),
     ("Test clients shared the logged-in user between independent sessions", "Authentication", "Software Code",
      "Medium", "tests/conftest.py", "Fixture kept one app context open, so Flask-Login's cached user in g leaked "
@@ -379,11 +379,11 @@ DEVELOPMENT_DEFECTS = [
     ("Dev-outbox notice revealed which emails have accounts", "Authentication", "Software Code", "Low",
      "auth.forgot_password", "Notice shown only when a reset email was actually written (existing accounts)",
      "Notice is shown for every request while in outbox mode", "Enumeration test compares responses", "testing"),
-    ("Undefined icon names rendered a fallback glyph silently", "UI / Layout", "Software Code", "Low", "icons.py",
+    ("Undefined icon names rendered a fallback glyph silently", "UI / Layout", "Software Code", "Low", "backend/icons.py",
      "Templates referenced 8 icons that icons.py did not define; icon() fell back to the help glyph",
      "Added the missing icons", "icon() records missing names; a test fails if any page requests one", "testing"),
     ("Generated Pareto/fishbone charts had broken and overlapping labels", "UI / Layout", "Software Code", "Low",
-     "services/charts.py", "Axis labels wrapped mid-word; fishbone cause labels crossed the neighbouring bone",
+     "backend/services/charts.py", "Axis labels wrapped mid-word; fishbone cause labels crossed the neighbouring bone",
      "Word-safe wrapping; fishbone bones re-spaced with two-line cause labels",
      "Visual check of every generated PNG before release", "testing"),
 ]

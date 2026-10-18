@@ -13,7 +13,7 @@ from flask_login import current_user
 from flask_wtf.csrf import CSRFError, generate_csrf
 from werkzeug.exceptions import HTTPException
 
-from config import get_config
+from .config import MIGRATIONS_DIR, STATIC_DIR, TEMPLATES_DIR, get_config
 
 from .extensions import compress, csrf, db, limiter, login_manager, migrate
 from .utils import fmt_dt, fmt_duration, iso_utc, time_ago, to_local, utc_to_local_input, utcnow
@@ -23,7 +23,9 @@ METRIC_ENDPOINTS = {"quiz.api_save", "quiz.api_submit", "quiz.api_state", "quiz.
 
 
 def create_app(config_object=None) -> Flask:
-    app = Flask(__name__, instance_relative_config=False)
+    # Frontend (Jinja templates, CSS, JS, images) lives in <root>/frontend; this package is the backend.
+    app = Flask(__name__, instance_relative_config=False,
+                template_folder=str(TEMPLATES_DIR), static_folder=str(STATIC_DIR), static_url_path="/static")
     cfg = config_object or get_config()
     app.config.from_object(cfg)
 
@@ -39,7 +41,7 @@ def create_app(config_object=None) -> Flask:
     _configure_logging(app, instance)
 
     db.init_app(app)
-    migrate.init_app(app, db, render_as_batch=True)
+    migrate.init_app(app, db, directory=str(MIGRATIONS_DIR), render_as_batch=True)
     csrf.init_app(app)
     limiter.init_app(app)
     compress.init_app(app)

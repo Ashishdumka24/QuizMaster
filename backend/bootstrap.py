@@ -11,7 +11,8 @@ from .extensions import db
 
 def prepare_database(app: Flask) -> None:
     """Apply migrations, seed base content and bootstrap the first admin."""
-    migrations = Path(app.root_path).parent / "migrations"
+    from .config import MIGRATIONS_DIR
+    migrations = MIGRATIONS_DIR
     if migrations.exists():
         from flask_migrate import upgrade
         upgrade(directory=str(migrations))

@@ -4,9 +4,9 @@ import re
 from datetime import timedelta
 
 from conftest import ADMIN_PW, STUDENT_PW, login
-from quizmaster.extensions import db
-from quizmaster.models import EmailOTP, PasswordResetToken, User
-from quizmaster.utils import utcnow
+from backend.extensions import db
+from backend.models import EmailOTP, PasswordResetToken, User
+from backend.utils import utcnow
 
 NEW_PW = "Fresh#Start2026"
 

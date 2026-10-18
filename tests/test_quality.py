@@ -1,8 +1,8 @@
 """TQM centre pages, CRUD and chart generation."""
 import pytest
 
-from quizmaster.extensions import db
-from quizmaster.models import Defect, FMEAItem, PDCAAction
+from backend.extensions import db
+from backend.models import Defect, FMEAItem, PDCAAction
 
 PAGES = ["/admin/quality/", "/admin/quality/defects", "/admin/quality/defects?severity=High&status=Open",
          "/admin/quality/defects/new", "/admin/quality/pareto", "/admin/quality/fishbone",
@@ -72,7 +72,7 @@ def test_exports(admin_client):
 
 
 def test_no_missing_icons_after_rendering(admin_client, student_client):
-    from quizmaster.icons import MISSING_ICONS
+    from backend.icons import MISSING_ICONS
     for url in PAGES:
         admin_client.get(url)
     for url in ("/student/dashboard", "/explore", "/student/history", "/account/profile", "/account/settings"):

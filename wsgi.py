@@ -5,6 +5,6 @@
 
 Run `flask --app wsgi db upgrade` during each deployment before starting.
 """
-from quizmaster import create_app
+from backend import create_app
 
 app = create_app()

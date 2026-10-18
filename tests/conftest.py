@@ -8,12 +8,12 @@ os.environ.setdefault("APP_ENV", "testing")
 
 import pytest  # noqa: E402
 
-from config import TestingConfig  # noqa: E402
-from quizmaster import create_app  # noqa: E402
-from quizmaster.extensions import db  # noqa: E402
-from quizmaster.models import User  # noqa: E402
-from quizmaster.seed import seed_all  # noqa: E402
-from quizmaster.utils import utcnow  # noqa: E402
+from backend.config import TestingConfig  # noqa: E402
+from backend import create_app  # noqa: E402
+from backend.extensions import db  # noqa: E402
+from backend.models import User  # noqa: E402
+from backend.seed import seed_all  # noqa: E402
+from backend.utils import utcnow  # noqa: E402
 
 STUDENT_PW = "Student#Pass2026"
 ADMIN_PW = "Admin#Pass2026x"
@@ -102,6 +102,6 @@ def no_dead_links(html: str) -> bool:
 
 def pytest_sessionfinish(session, exitstatus):
     """Report icon names that templates asked for but icons.py does not define."""
-    from quizmaster.icons import MISSING_ICONS
+    from backend.icons import MISSING_ICONS
     if MISSING_ICONS:
         print("\nMISSING ICONS:", ", ".join(sorted(MISSING_ICONS)))

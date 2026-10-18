@@ -24,7 +24,7 @@ def test_student_pages(student_client, url):
 
 
 def test_quiz_detail_pages(student_client, app):
-    from quizmaster.models import Quiz
+    from backend.models import Quiz
     with app.app_context():
         slugs = [q.slug for q in Quiz.query.filter_by(status="published")]
     assert slugs

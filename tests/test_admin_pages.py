@@ -3,8 +3,8 @@ import io
 
 import pytest
 
-from quizmaster.extensions import db
-from quizmaster.models import Question, Quiz, QuizAttempt, User
+from backend.extensions import db
+from backend.models import Question, Quiz, QuizAttempt, User
 from tests.conftest import no_dead_links
 
 ADMIN_PAGES = ["/admin/", "/admin/users", "/admin/users?role=student&status=active&sort=name", "/admin/users/new",

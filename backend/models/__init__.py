@@ -1,4 +1,4 @@
-"""Database models. Import from here: `from quizmaster.models import User`."""
+"""Database models. Import from here: `from backend.models import User`."""
 from .quality import (DEFECT_SOURCES, DEFECT_STATUSES, DEFECT_TYPES, FISHBONE_CATEGORIES, PDCA_STAGES, SEVERITIES,
                       ChangelogEntry, Defect, FMEAItem, PDCAAction)
 from .quiz import (ATTEMPT_STATUSES, DIFFICULTIES, QUESTION_TYPES, QUIZ_STATUSES, RELEASE_POLICIES, AnswerOption,

@@ -25,10 +25,10 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app import app  # noqa: E402
-from quizmaster.bootstrap import prepare_database  # noqa: E402
-from quizmaster.extensions import db, limiter  # noqa: E402
-from quizmaster.models import Quiz, User  # noqa: E402
-from quizmaster.utils import utcnow  # noqa: E402
+from backend.bootstrap import prepare_database  # noqa: E402
+from backend.extensions import db, limiter  # noqa: E402
+from backend.models import Quiz, User  # noqa: E402
+from backend.utils import utcnow  # noqa: E402
 
 
 def main() -> None:

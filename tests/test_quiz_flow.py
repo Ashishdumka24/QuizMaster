@@ -1,6 +1,6 @@
 """End-to-end attempt lifecycle through the JSON API the player uses."""
-from quizmaster.extensions import db
-from quizmaster.models import Quiz, QuizAttempt
+from backend.extensions import db
+from backend.models import Quiz, QuizAttempt
 
 
 def _quiz(app, release="immediate"):
@@ -69,8 +69,8 @@ def test_other_student_cannot_view_attempt(student_client, app):
     _, slug = _quiz(app)
     aid = _start(student_client, slug)
     student_client.post("/auth/logout")
-    from quizmaster.models import User
-    from quizmaster.utils import utcnow
+    from backend.models import User
+    from backend.utils import utcnow
     with app.app_context():
         u = User(full_name="Other Person", email="other@example.test", role="student", email_verified_at=utcnow())
         u.set_password("Other#Pass2026x")
@@ -99,7 +99,7 @@ def test_server_deadline_enforced(student_client, app):
 
 
 def test_snapshot_keeps_old_result_when_question_edited(student_client, app):
-    from quizmaster.models import Question, QuizQuestion
+    from backend.models import Question, QuizQuestion
     qid, slug = _quiz(app)
     aid = _start(student_client, slug)
     student_client.post(f"/api/attempts/{aid}/submit", json={})

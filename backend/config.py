@@ -11,7 +11,14 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-BASE_DIR = Path(__file__).resolve().parent
+# Project layout:  <root>/backend (this package) · <root>/frontend (templates + static)
+#                  <root>/database (migrations) · <root>/instance (runtime data, git-ignored)
+BASE_DIR = Path(__file__).resolve().parent.parent          # project root
+BACKEND_DIR = BASE_DIR / "backend"
+FRONTEND_DIR = BASE_DIR / "frontend"
+TEMPLATES_DIR = FRONTEND_DIR / "templates"
+STATIC_DIR = FRONTEND_DIR / "static"
+MIGRATIONS_DIR = BASE_DIR / "database" / "migrations"
 load_dotenv(BASE_DIR / ".env")
 
 

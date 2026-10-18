@@ -1,8 +1,8 @@
 """Unit tests for grading rules, input bounds, validation helpers and security controls."""
 import pytest
 
-from quizmaster.security import valid_email, validate_password
-from quizmaster.services.grading import grade_question, sanitize_response
+from backend.security import valid_email, validate_password
+from backend.services.grading import grade_question, sanitize_response
 
 SINGLE = {"type": "single", "marks": 2, "negative": 0.5, "options": [{"id": 1}, {"id": 2}, {"id": 3}], "correct": [2]}
 MULTI = {"type": "multiple", "marks": 3, "negative": 1, "options": [{"id": 1}, {"id": 2}, {"id": 3}], "correct": [1, 3]}
@@ -78,7 +78,7 @@ def test_open_redirect_blocked(app):
 
 
 def test_safe_back_ignores_foreign_referrer(admin_client, app):
-    from quizmaster.models import Quiz
+    from backend.models import Quiz
     with app.app_context():
         qid = Quiz.query.filter_by(status="published").first().id
     r = admin_client.post(f"/admin/quizzes/{qid}/publish-results", data={"publish": "1"},
@@ -91,7 +91,7 @@ def test_safe_back_ignores_foreign_referrer(admin_client, app):
 
 def test_student_cannot_call_admin_api_or_change_role(student_client, app):
     r = student_client.post("/account/profile", data={"full_name": "Asha Kumar", "role": "admin"})
-    from quizmaster.models import User
+    from backend.models import User
     with app.app_context():
         assert User.query.filter_by(email="student@example.test").one().role == "student"
     assert student_client.get("/admin/").status_code in (302, 403)

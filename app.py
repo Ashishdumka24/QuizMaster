@@ -10,8 +10,8 @@ For production use a WSGI server with `wsgi.py` (see docs/DEPLOYMENT.md).
 """
 import os
 
-from quizmaster import create_app
-from quizmaster.bootstrap import prepare_database
+from backend import create_app
+from backend.bootstrap import prepare_database
 
 app = create_app()
 
