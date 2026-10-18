@@ -1,0 +1,50 @@
+{% extends "layouts/app.html" %}
+{% from "macros/ui.html" import page_head, pagination, score_pill, status_badge, empty %}
+{% block title %}Attempt history{% endblock %}
+{% block content %}
+{% call page_head('Attempt history', 'Every quiz attempt you have started, newest first.') %}
+  <a class="btn btn-primary" href="{{ url_for('quiz.explore') }}">{{ icon('compass') }} Take a quiz</a>
+{% endcall %}
+<form class="filters" method="get" role="search">
+  <div class="grow">{{ icon('search') }}<label class="sr-only" for="h-q">Search by quiz title</label><input class="input" id="h-q" name="q" value="{{ search }}" placeholder="Search by quiz title…"></div>
+  <label class="sr-only" for="h-status">Status</label>
+  <select class="select" id="h-status" name="status" data-autosubmit>
+    {% for v, l in [('', 'All statuses'), ('in_progress', 'In progress'), ('submitted', 'Submitted'), ('expired', 'Time expired'), ('passed', 'Passed'), ('failed', 'Failed')] %}<option value="{{ v }}"{{ ' selected' if status == v }}>{{ l }}</option>{% endfor %}
+  </select>
+  <label class="sr-only" for="h-sort">Sort</label>
+  <select class="select" id="h-sort" name="sort" data-autosubmit>
+    {% for v, l in [('newest', 'Newest first'), ('oldest', 'Oldest first'), ('score', 'Highest score')] %}<option value="{{ v }}"{{ ' selected' if sort == v }}>{{ l }}</option>{% endfor %}
+  </select>
+  <button class="btn btn-soft" type="submit">{{ icon('filter') }} Apply</button>
+  {% if search or status or sort != 'newest' %}<a class="btn btn-ghost" href="{{ url_for('student.history') }}">Reset</a>{% endif %}
+</form>
+{% if page.items %}
+<div class="card card-flush"><div class="table-wrap"><table class="table table-stack">
+  <thead><tr><th>Quiz</th><th>Attempt</th><th>Started</th><th>Status</th><th>Time</th><th>Score</th><th class="text-right">Actions</th></tr></thead>
+  <tbody>
+  {% for a in page.items %}
+    {% set rel = released(a) %}
+    <tr>
+      <td data-label="Quiz"><b>{{ a.quiz.title }}</b><div class="text-xs text-muted">{{ a.quiz.category.name if a.quiz.category else 'General' }}</div></td>
+      <td data-label="Attempt">#{{ a.attempt_number }}</td>
+      <td data-label="Started" title="{{ a.started_at | dt }}">{{ a.started_at | dt('%d %b %Y, %H:%M') }}</td>
+      <td data-label="Status">{{ status_badge(a.status) }}{% if a.auto_submitted %} <span class="badge badge-outline" title="Submitted automatically when time ran out">Auto</span>{% endif %}</td>
+      <td data-label="Time">{{ a.time_taken_seconds | duration if a.time_taken_seconds else '—' }}</td>
+      <td data-label="Score">{% if a.status == 'in_progress' %}—{% elif rel %}{{ score_pill(a.percentage) }} {% if a.passed %}<span class="badge badge-ok">Pass</span>{% else %}<span class="badge badge-bad">Fail</span>{% endif %}{% else %}<span class="badge badge-outline" title="Results are released by the quiz administrator">Pending release</span>{% endif %}</td>
+      <td class="text-right"><div class="actions">
+        {% if a.status == 'in_progress' %}<a class="btn btn-primary btn-sm" href="{{ url_for('quiz.play', attempt_id=a.id) }}">{{ icon('play') }} Resume</a>
+        {% else %}<a class="btn btn-soft btn-sm" href="{{ url_for('quiz.result', attempt_id=a.id) }}">{{ icon('eye') }} {{ 'View result' if rel else 'Details' }}</a>
+          {% if rel and a.passed %}<a class="btn btn-ghost btn-sm" href="{{ url_for('quiz.certificate', attempt_id=a.id) }}" aria-label="Certificate">{{ icon('award') }}</a>{% endif %}
+        {% endif %}
+      </div></td>
+    </tr>
+  {% endfor %}
+  </tbody></table></div></div>
+{{ pagination(page, 'student.history') }}
+{% else %}
+<div class="card">
+  {% if search or status %}{{ empty('No attempts match your filters', 'Try a different search or clear the filters.', 'search', url_for('student.history'), 'Clear filters', 'x') }}
+  {% else %}{{ empty('No attempts yet', 'Your quiz attempts will be listed here with scores and review links.', 'history', url_for('quiz.explore'), 'Explore quizzes') }}{% endif %}
+</div>
+{% endif %}
+{% endblock %}

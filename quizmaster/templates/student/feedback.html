@@ -1,0 +1,56 @@
+{% extends "layouts/app.html" %}
+{% from "macros/ui.html" import page_head, field, textarea, select, status_badge %}
+{% block title %}Feedback & bug reports{% endblock %}
+{% block content %}
+{{ page_head('Feedback & bug reports', 'Your input drives our continuous improvement (Kaizen). Every report is logged and tracked.') }}
+<div class="tabs" data-tabs role="tablist">
+  <button class="tab" role="tab" data-tab="rate" type="button">{{ icon('star') }} Rate your experience</button>
+  <button class="tab" role="tab" data-tab="bug" type="button">{{ icon('bug') }} Report a problem</button>
+</div>
+<div class="grid-main">
+  <div>
+    <section class="card card-lg" data-panel="rate" role="tabpanel">
+      <h2 style="margin-top:0;font-size:1.2rem">How is QuizMaster working for you?</h2>
+      <form method="post" action="{{ url_for('student.feedback') }}" class="stack" style="--gap:1.1rem">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="kind" value="feedback">
+        <fieldset style="border:0;padding:0;margin:0"><legend class="label">Overall rating <span class="bad">*</span></legend>
+          <div class="stars">
+            {% for n in [5, 4, 3, 2, 1] %}<input type="radio" id="star{{ n }}" name="rating" value="{{ n }}"{{ ' checked' if form.get('rating') == n | string }}><label for="star{{ n }}" title="{{ n }} star{{ 's' if n > 1 }}">{{ icon('star') }}<span class="sr-only">{{ n }} star{{ 's' if n > 1 }}</span></label>{% endfor %}
+          </div>
+          {% if errors.rating %}<p class="error-text">{{ icon('alert') }} {{ errors.rating }}</p>{% endif %}
+        </fieldset>
+        {{ select('area', 'Which area is this about?', areas.items(), form.get('area', 'general')) }}
+        {{ textarea('message', 'Comments (optional)', form.get('message', ''), rows=4, maxlength=2000, placeholder='What did you like? What should we improve?') }}
+        <button type="submit" class="btn btn-primary">{{ icon('send') }} Submit feedback</button>
+      </form>
+    </section>
+    <section class="card card-lg" data-panel="bug" role="tabpanel" id="bug">
+      <h2 style="margin-top:0;font-size:1.2rem">Report a problem</h2>
+      <p class="text-sm text-muted">Bug reports go straight into the defect log used for our Pareto and fishbone analysis.</p>
+      <form method="post" action="{{ url_for('student.feedback') }}#bug" class="stack" style="--gap:1.1rem" novalidate>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="kind" value="bug">
+        {{ field('title', 'Short title', form.get('title', ''), required=True, errors=errors, maxlength=160, placeholder='e.g. Timer shows wrong value after refresh') }}
+        <div class="form-grid">
+          <div class="field"><label class="label" for="f-defect_type">Type of problem</label>
+            <select class="select" id="f-defect_type" name="defect_type">{% for t in defect_types %}<option value="{{ t }}"{{ ' selected' if form.get('defect_type') == t }}>{{ t }}</option>{% endfor %}</select></div>
+          <div class="field"><label class="label" for="f-severity">How serious is it?</label>
+            <select class="select" id="f-severity" name="severity">{% for s in ['Low', 'Medium', 'High', 'Critical'] %}<option value="{{ s }}"{{ ' selected' if form.get('severity', 'Medium') == s }}>{{ s }}</option>{% endfor %}</select></div>
+        </div>
+        {{ textarea('description', 'What happened?', form.get('description', ''), errors=errors, required=True, rows=4, maxlength=3000) }}
+        {{ textarea('steps', 'Steps to reproduce (optional)', form.get('steps', ''), rows=3, maxlength=2000, placeholder='1. Open… 2. Click… 3. See error') }}
+        <button type="submit" class="btn btn-warm">{{ icon('bug') }} Submit bug report</button>
+      </form>
+    </section>
+  </div>
+  <aside class="stack" style="--gap:1.25rem">
+    <section class="card"><h3 style="margin-top:0;font-size:1rem">Your recent feedback</h3>
+      {% for f in mine_fb %}<div class="activity-item"><span class="text-sm" style="color:var(--amber)">{{ '★' * f.rating }}<span style="color:var(--line-2)">{{ '★' * (5 - f.rating) }}</span></span><span class="text-xs text-muted" style="margin-left:auto">{{ areas.get(f.area, f.area) }} · {{ f.created_at | ago }}</span></div>
+      {% else %}<p class="text-sm text-muted" style="margin:0">No feedback submitted yet.</p>{% endfor %}
+    </section>
+    <section class="card"><h3 style="margin-top:0;font-size:1rem">Your bug reports</h3>
+      {% for d in mine_bugs %}<div class="activity-item"><span style="flex:1;min-width:0"><b class="text-sm">{{ d.code }}</b> <span class="text-sm">{{ d.title | truncate(40) }}</span></span>{{ status_badge(d.status | lower) }}</div>
+      {% else %}<p class="text-sm text-muted" style="margin:0">No bug reports yet. Thank you for helping!</p>{% endfor %}
+    </section>
+  </aside>
+</div>
+{% endblock %}

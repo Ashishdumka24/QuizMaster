@@ -1,0 +1,47 @@
+{% extends "layouts/app.html" %}
+{% from "macros/ui.html" import page_head, stat, chart, score_pill, empty %}
+{% block title %}My results{% endblock %}
+{% block content %}
+{% set s = stats %}
+{% call page_head('Results & analytics', 'Released results and how you are progressing over time.') %}
+  <a class="btn btn-ghost" href="{{ url_for('student.history') }}">{{ icon('history') }} Full history</a>
+{% endcall %}
+<div class="grid grid-4">
+  {{ stat('Released results', s.released_count, 'award') }}
+  {{ stat('Average', ('%.1f' | format(s.avg_score)) if s.avg_score is not none else '—', 'target', 'cool', None, '%' if s.avg_score is not none else '') }}
+  {{ stat('Best', ('%.1f' | format(s.best_score)) if s.best_score is not none else '—', 'trophy', 'warm', None, '%' if s.best_score is not none else '') }}
+  {{ stat('Time practising', s.time_spent | duration, 'clock', 'mint') }}
+</div>
+<div class="grid grid-2 mt-3">
+  <section class="card"><div class="card-head"><h2 style="font-size:1.05rem;margin:0">Score trend</h2></div>
+    {{ chart('line', s.trend | map(attribute='label'), s.trend | map(attribute='value'), 'Line chart of recent scores', 240, 100, '%', 'No released results yet.', tips=s.trend | map(attribute='title')) }}</section>
+  <section class="card"><div class="card-head"><h2 style="font-size:1.05rem;margin:0">Average by subject</h2></div>
+    {{ chart('hbar', s.subjects | map(attribute='name'), s.subjects | map(attribute='avg'), 'Bar chart of average score per subject', 240, 100, '%', 'Subject averages appear after your first released result.') }}</section>
+</div>
+{% if pending %}
+<section class="card mt-3">
+  <div class="card-head"><h2 style="font-size:1.05rem;margin:0">{{ icon('clock') }} Awaiting release ({{ pending | length }})</h2></div>
+  <p class="text-sm text-muted">These attempts are submitted and graded, but the quiz administrator releases results later (after the quiz closes or manually).</p>
+  <ul class="list-plain list-divided">{% for a in pending %}<li class="row-between"><span><b>{{ a.quiz.title }}</b> <span class="text-xs text-muted">· attempt #{{ a.attempt_number }} · submitted {{ a.submitted_at | ago }}</span></span>
+    <span class="badge badge-outline">{{ RELEASE_POLICIES.get(a.quiz.result_release, 'Pending') }}</span></li>{% endfor %}</ul>
+</section>
+{% endif %}
+<section class="card card-flush mt-3">
+  <div class="card-head" style="padding:1.1rem 1.2rem 0"><h2 style="font-size:1.05rem;margin:0">Released results</h2></div>
+  {% if released %}
+  <div class="table-wrap"><table class="table table-stack">
+    <thead><tr><th>Quiz</th><th>Submitted</th><th>Correct</th><th>Score</th><th>Result</th><th class="text-right"></th></tr></thead>
+    <tbody>{% for a in released %}
+      <tr><td data-label="Quiz"><b>{{ a.quiz.title }}</b> <span class="text-xs text-muted">#{{ a.attempt_number }}</span></td>
+      <td data-label="Submitted">{{ a.submitted_at | dt('%d %b %Y') }}</td>
+      <td data-label="Correct">{{ a.correct_count }} / {{ a.correct_count + a.incorrect_count + a.unanswered_count }}</td>
+      <td data-label="Score">{{ score_pill(a.percentage) }} <span class="text-xs text-muted">{{ '%g' | format(a.score or 0) }}/{{ '%g' | format(a.max_score) }}</span></td>
+      <td data-label="Result">{% if a.passed %}<span class="badge badge-ok">Passed</span>{% else %}<span class="badge badge-bad">Not passed</span>{% endif %}</td>
+      <td class="text-right"><div class="actions"><a class="btn btn-soft btn-sm" href="{{ url_for('quiz.result', attempt_id=a.id) }}">Review</a>
+        {% if a.passed %}<a class="btn btn-ghost btn-sm" href="{{ url_for('quiz.certificate', attempt_id=a.id) }}">{{ icon('award') }} Certificate</a>{% endif %}</div></td></tr>
+    {% endfor %}</tbody></table></div>
+  {% else %}
+  {{ empty('No released results yet', 'Take a quiz — results released immediately will show up here.', 'award', url_for('quiz.explore'), 'Explore quizzes') }}
+  {% endif %}
+</section>
+{% endblock %}

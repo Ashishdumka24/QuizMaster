@@ -1,0 +1,118 @@
+{% extends "layouts/app.html" %}
+{% from "macros/ui.html" import stat, chart, score_pill, status_badge, quiz_card, empty %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+{% set s = stats %}
+<section class="card card-gradient welcome fade-up">
+  <div style="position:relative;z-index:1">
+    <h1>{{ 'Good to see you' if s.total_attempts else 'Welcome' }}, {{ current_user.first_name }}! {{ '🔥' if s.streak >= 2 else '👋' }}</h1>
+    <p>{% if not s.total_attempts %}You haven’t taken a quiz yet. Pick one below to start building your progress.
+       {% elif s.streak >= 2 %}You’re on a {{ s.streak }}-day streak. Keep it going with a quiz today!
+       {% else %}Ready for your next challenge? Every attempt sharpens your skills.{% endif %}</p>
+    <div class="actions">
+      <a class="btn btn-white" href="{{ url_for('quiz.explore') }}">{{ icon('compass') }} Explore quizzes</a>
+      {% if in_progress %}<a class="btn btn-soft" style="background:rgba(255,255,255,.18);color:#fff" href="{{ url_for('quiz.play', attempt_id=in_progress[0].id) }}">{{ icon('play') }} Resume “{{ in_progress[0].quiz.title | truncate(28) }}”</a>{% endif %}
+    </div>
+  </div>
+  <div class="welcome-art">
+    <div class="mini"><b>{{ s.streak }}</b><span>day streak</span></div>
+    <div class="mini"><b>{{ s.completion.done }}/{{ s.completion.total }}</b><span>quizzes tried</span></div>
+  </div>
+</section>
+
+{% if in_progress %}
+<div class="alert alert-info mt-2" role="status">{{ icon('clock') }}<div>You have {{ in_progress | length }} quiz attempt{{ 's' if in_progress | length > 1 }} in progress. The timer keeps running on the server — <a href="{{ url_for('quiz.play', attempt_id=in_progress[0].id) }}">resume now</a>.</div></div>
+{% endif %}
+
+<div class="grid grid-4 mt-3">
+  {{ stat('Quizzes taken', s.total_attempts, 'list-checks', '', (s.released_count ~ ' with released results') if s.total_attempts else 'Start your first quiz') }}
+  {{ stat('Average score', ('%.1f' | format(s.avg_score)) if s.avg_score is not none else '—', 'target', 'cool', 'Across released results', '%' if s.avg_score is not none else '') }}
+  {{ stat('Best score', ('%.1f' | format(s.best_score)) if s.best_score is not none else '—', 'trophy', 'warm', 'Your personal best', '%' if s.best_score is not none else '') }}
+  {{ stat('Pass rate', ('%.0f' | format(s.pass_rate)) if s.pass_rate is not none else '—', 'award', 'mint', (s.passed ~ ' passed') if s.released_count else 'No released results yet', '%' if s.pass_rate is not none else '') }}
+</div>
+
+<div class="grid-main mt-3">
+  <div class="stack" style="--gap:1.25rem">
+    <section class="card">
+      <div class="card-head"><div><h2 style="font-size:1.1rem;margin:0">Score trend</h2><p class="text-sm text-muted" style="margin:0">Your last {{ s.trend | length }} released results</p></div>
+        <a class="btn btn-ghost btn-sm" href="{{ url_for('student.results') }}">Full analytics {{ icon('arrow-right') }}</a></div>
+      {{ chart('line', s.trend | map(attribute='label'), s.trend | map(attribute='value'), 'Line chart of your recent quiz scores', 240, 100, '%', 'Complete a quiz with released results to see your trend.', tips=s.trend | map(attribute='title')) }}
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h2 style="font-size:1.1rem;margin:0">Recent activity</h2><a class="btn btn-ghost btn-sm" href="{{ url_for('student.history') }}">View history {{ icon('arrow-right') }}</a></div>
+      {% if recent %}
+        {% for a in recent %}
+        {% set cat = a.quiz.category %}
+        <div class="activity-item">
+          <span class="activity-ic" style="background: {{ cat.color if cat else '#6366F1' }}">{{ icon(cat.icon if cat else 'book') }}</span>
+          <div style="flex:1;min-width:0">
+            <b class="truncate" style="display:block">{{ a.quiz.title }}</b>
+            <span class="text-xs text-muted">Attempt {{ a.attempt_number }} · {{ (a.submitted_at or a.started_at) | ago }}</span>
+          </div>
+          {% if a.status == 'in_progress' %}
+            <a class="btn btn-primary btn-sm" href="{{ url_for('quiz.play', attempt_id=a.id) }}">{{ icon('play') }} Resume</a>
+          {% elif released(a) %}
+            {{ score_pill(a.percentage) }}
+            <a class="btn btn-ghost btn-sm" href="{{ url_for('quiz.result', attempt_id=a.id) }}" aria-label="View result for {{ a.quiz.title }}">{{ icon('chevron-right') }}</a>
+          {% else %}
+            <span class="badge badge-outline">Result pending</span>
+          {% endif %}
+        </div>
+        {% endfor %}
+      {% else %}
+        {{ empty('No activity yet', 'Your attempts will appear here once you take a quiz.', 'history', url_for('quiz.explore'), 'Find a quiz') }}
+      {% endif %}
+    </section>
+
+    <section>
+      <div class="row-between mb-2"><div><h2 style="font-size:1.1rem;margin:0">Recommended for you</h2>
+        <p class="text-xs text-muted" style="margin:.2rem 0 0" title="Rule: open quizzes you haven't attempted, ordered by your weakest subject first, then featured, then newest.">{{ icon('info') }} Based on your weakest subjects, then featured and newest quizzes you haven’t tried.</p></div>
+        <a class="btn btn-ghost btn-sm" href="{{ url_for('quiz.explore') }}">Explore all</a></div>
+      {% if recommended %}
+      <div class="grid grid-2">{% for q in recommended %}{{ quiz_card(q) }}{% endfor %}</div>
+      {% else %}
+      <div class="card">{{ empty('You’re all caught up!', 'You have attempted every open quiz. New quizzes will be recommended here.', 'sparkles') }}</div>
+      {% endif %}
+    </section>
+  </div>
+
+  <aside class="stack" style="--gap:1.25rem">
+    <section class="card">
+      <div class="card-head"><h2 style="font-size:1.05rem;margin:0">Completion</h2></div>
+      <div class="row" style="gap:1.2rem;flex-wrap:nowrap">
+        <div class="ring" style="--p: {{ s.completion.pct }};--size:96px;--thick:10px"><div><div class="ring-value">{{ s.completion.pct }}%</div></div></div>
+        <p class="text-sm text-muted" style="margin:0">You’ve attempted <b>{{ s.completion.done }}</b> of <b>{{ s.completion.total }}</b> published quizzes. Time spent: <b>{{ s.time_spent | duration }}</b>.</p>
+      </div>
+    </section>
+    <section class="card">
+      <div class="card-head"><h2 style="font-size:1.05rem;margin:0">Subject performance</h2></div>
+      {% if s.subjects %}
+        {% for sub in s.subjects[:6] %}
+        <div class="subject-row"><span class="truncate">{{ sub.name }}</span><div class="progress progress-sm"><span style="width: {{ sub.avg }}%"></span></div><b>{{ '%.0f' | format(sub.avg) }}%</b></div>
+        {% endfor %}
+        {% if s.weak_categories %}<p class="text-xs text-muted mt-1" style="margin-bottom:0">Focus area: <b>{{ s.weak_categories[0] }}</b></p>{% endif %}
+      {% else %}
+        <p class="text-sm text-muted" style="margin:0">Subject averages appear after your first released result.</p>
+      {% endif %}
+    </section>
+    <section class="card">
+      <div class="card-head"><h2 style="font-size:1.05rem;margin:0">{{ icon('megaphone') }} Announcements</h2></div>
+      {% for a in announcements %}
+        <div class="announce{{ ' pinned' if a.pinned }}"><h4>{% if a.pinned %}{{ icon('pin') }}{% endif %}{{ a.title }}</h4><p>{{ a.body | truncate(220) }}</p><span class="text-xs text-faint">{{ a.published_at | ago }}</span></div>
+      {% else %}
+        <p class="text-sm text-muted" style="margin:0">No announcements right now.</p>
+      {% endfor %}
+    </section>
+    <section class="card">
+      <div class="card-head"><h2 style="font-size:1.05rem;margin:0">Quick links</h2></div>
+      <div class="grid grid-2" style="gap:.5rem">
+        <a class="btn btn-soft btn-sm" href="{{ url_for('quiz.leaderboard') }}">{{ icon('trophy') }} Leaderboard</a>
+        <a class="btn btn-soft btn-sm" href="{{ url_for('quiz.calendar_view') }}">{{ icon('calendar') }} Calendar</a>
+        <a class="btn btn-soft btn-sm" href="{{ url_for('student.results') }}">{{ icon('bar-chart') }} Analytics</a>
+        <a class="btn btn-soft btn-sm" href="{{ url_for('student.feedback') }}">{{ icon('message') }} Feedback</a>
+      </div>
+    </section>
+  </aside>
+</div>
+{% endblock %}
