@@ -1,0 +1,33 @@
+{% extends "layouts/app.html" %}
+{% from "macros/ui.html" import page_head, empty with context %}
+{% block title %}Control chart{% endblock %}
+{% block content %}
+{% call page_head('Statistical process control', 'I-MR control chart of submission processing time — the CTQ behind “zero latency during submissions & auto-grading”.') %}
+  {% if cc.n >= 2 %}<a class="btn btn-soft" href="{{ url_for('quality.chart_png', name='control', download=1) }}">{{ icon('download') }} Download PNG</a>{% endif %}
+{% endcall %}
+{% include "tqm/_nav.html" %}
+{% if cc.n >= 2 %}
+{% if not cc.enough %}<div class="alert alert-info">{{ icon('info') }}<div>Only {{ cc.n }} submissions measured. Control limits become meaningful with at least 10–20 samples — treat this chart as preliminary.</div></div>{% endif %}
+<section class="card"><figure style="margin:0"><img class="chart-img" src="{{ url_for('quality.chart_png', name='control') }}" alt="Individuals control chart of submission processing time with mean, upper and lower control limits." loading="lazy" width="1100" height="520"></figure></section>
+<div class="grid grid-4 mt-3">
+  <div class="card mini"><b>{{ cc.n }}</b><span>Samples (latest {{ cc.n }})</span></div>
+  <div class="card mini"><b>{{ cc.mean }} <small>ms</small></b><span>Centre line (mean)</span></div>
+  <div class="card mini"><b>{{ cc.ucl }} <small>ms</small></b><span>UCL = x̄ + 2.66·MR̄</span></div>
+  <div class="card mini"><b class="{{ 'bad' if cc.out_of_control else 'ok' }}">{{ cc.out_of_control | length }}</b><span>Points outside limits</span></div>
+</div>
+{% else %}
+<div class="card">{{ empty('Not enough data yet', 'The chart appears after at least two real quiz submissions. Each submission records its server processing time automatically.', 'activity') }}</div>
+{% endif %}
+<section class="card card-flush mt-3"><div class="card-head" style="padding:1.1rem 1.2rem 0"><h2>CTQ measurements</h2></div>
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th>Metric</th><th class="text-right">Samples</th><th class="text-right">Average</th><th class="text-right">p95</th><th class="text-right">Target</th></tr></thead>
+    <tbody>
+      <tr><td>Submission processing (server)</td><td class="text-right">{{ ctq.submit.n }}</td><td class="text-right">{{ ctq.submit.avg if ctq.submit.avg is not none else '—' }} ms</td><td class="text-right">{{ ctq.submit.p95 if ctq.submit.p95 is not none else '—' }} ms</td><td class="text-right">p95 &lt; {{ ctq.submit.target | int }} ms</td></tr>
+      <tr><td>Auto-grading time</td><td class="text-right">{{ ctq.grading.n }}</td><td class="text-right">{{ ctq.grading.avg if ctq.grading.avg is not none else '—' }} ms</td><td class="text-right">{{ ctq.grading.p95 if ctq.grading.p95 is not none else '—' }} ms</td><td class="text-right">—</td></tr>
+      <tr><td>Autosave request</td><td class="text-right">{{ ctq.autosave.n }}</td><td class="text-right">{{ ctq.autosave.avg if ctq.autosave.avg is not none else '—' }} ms</td><td class="text-right">{{ ctq.autosave.p95 if ctq.autosave.p95 is not none else '—' }} ms</td><td class="text-right">p95 &lt; {{ ctq.autosave.target | int }} ms</td></tr>
+      <tr><td>Autosave success rate</td><td class="text-right">{{ ctq.autosave.n }}</td><td class="text-right" colspan="2">{{ (ctq.autosave.success_pct ~ '%') if ctq.autosave.success_pct is not none else '—' }} <span class="text-xs text-muted">({{ ctq.autosave.expired_rejections }} correctly rejected after deadline)</span></td><td class="text-right">≥ {{ ctq.targets.autosave_success_pct }}%</td></tr>
+      <tr><td>Questions auto-gradable</td><td class="text-right">—</td><td class="text-right" colspan="2">{{ (ctq.auto_grade_coverage ~ '%') if ctq.auto_grade_coverage is not none else '—' }}</td><td class="text-right">100%</td></tr>
+    </tbody></table></div>
+  <p class="text-xs text-muted" style="padding:0 1.2rem 1rem;margin:0">Measured on this server in its current environment; values depend on hardware and load. {{ n_scores }} finished attempts in total. Score histogram: <a href="{{ url_for('quality.chart_png', name='histogram') }}">PNG</a>.</p>
+</section>
+{% endblock %}

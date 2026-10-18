@@ -1,0 +1,15 @@
+{% set ep = request.endpoint or '' %}
+<nav class="tabs tqm-nav mb-3" aria-label="TQM tools">
+  {% for e, label, ic, match in [('quality.overview', 'Overview', 'target', ['quality.overview']),
+                                 ('quality.defects', 'Defect log', 'bug', ['quality.defects', 'quality.defect_new', 'quality.defect_edit']),
+                                 ('quality.pareto', 'Pareto', 'bar-chart', ['quality.pareto']),
+                                 ('quality.fishbone', 'Fishbone', 'git-branch', ['quality.fishbone']),
+                                 ('quality.control', 'Control chart', 'activity', ['quality.control']),
+                                 ('quality.fmea', 'FMEA', 'alert', ['quality.fmea', 'quality.fmea_new', 'quality.fmea_edit']),
+                                 ('quality.pdca', 'PDCA', 'refresh', ['quality.pdca', 'quality.pdca_new', 'quality.pdca_edit']),
+                                 ('quality.sipoc', 'SIPOC & CTQ', 'layers', ['quality.sipoc']),
+                                 ('quality.changelog', 'Version log', 'history', ['quality.changelog']),
+                                 ('quality.report', 'Report', 'printer', ['quality.report'])] %}
+  <a class="tab{{ ' active' if ep in match }}" href="{{ url_for(e) }}"{% if ep in match %} aria-current="page"{% endif %}>{{ icon(ic) }} {{ label }}</a>
+  {% endfor %}
+</nav>

@@ -1,0 +1,46 @@
+{% extends "layouts/app.html" %}
+{% from "macros/ui.html" import page_head, field, textarea, select with context %}
+{% block title %}{{ 'Add failure mode' if is_new else 'Edit failure mode' }}{% endblock %}
+{% block content %}
+{% macro v(name, default) %}{{ form.get(name, default if default is not none else '') }}{% endmacro %}
+{{ page_head('Add failure mode' if is_new else 'Edit failure mode', 'Rate each factor 1–10. RPN updates as you type.', [('TQM centre', url_for('quality.overview')), ('FMEA', url_for('quality.fmea')), ('New' if is_new else 'Edit', None)]) }}
+<form method="post" novalidate data-dirty-guard data-rpn>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="grid-main">
+    <section class="card card-lg">
+      <div class="form-grid">
+        {{ field('process_step', 'Process step', v('process_step', item.process_step), errors=errors, required=True, maxlength=100, placeholder='e.g. Submission') }}
+        {{ field('owner', 'Owner', v('owner', item.owner), maxlength=80) }}
+      </div>
+      {{ field('failure_mode', 'Potential failure mode', v('failure_mode', item.failure_mode), errors=errors, required=True, maxlength=200) }}
+      {{ textarea('effect', 'Effect on the student / system', v('effect', item.effect), errors=errors, required=True, rows=2, maxlength=300) }}
+      {{ textarea('cause', 'Potential cause', v('cause', item.cause), errors=errors, required=True, rows=2, maxlength=300) }}
+      {{ textarea('current_controls', 'Current controls', v('current_controls', item.current_controls), rows=2, maxlength=300) }}
+      {{ textarea('recommended_action', 'Recommended action', v('recommended_action', item.recommended_action), rows=2, maxlength=400) }}
+      {{ select('action_status', 'Action status', [('Planned', 'Planned'), ('Implemented', 'Implemented'), ('Verified', 'Verified')], v('action_status', item.action_status)) }}
+    </section>
+    <aside class="stack" style="--gap:1.25rem">
+      <section class="card card-lg"><h2 class="form-section">Current risk</h2>
+        <div class="form-grid form-grid-3">
+          {{ field('severity', 'Severity', v('severity', item.severity), 'number', errors=errors, min=1, max=10, required=True, attrs='data-rpn-s') }}
+          {{ field('occurrence', 'Occurrence', v('occurrence', item.occurrence), 'number', errors=errors, min=1, max=10, required=True, attrs='data-rpn-o') }}
+          {{ field('detection', 'Detection', v('detection', item.detection), 'number', errors=errors, min=1, max=10, required=True, attrs='data-rpn-d') }}
+        </div>
+        <div class="rpn-live">RPN <b data-rpn-out>{{ item.rpn if item.severity and item.occurrence and item.detection else '—' }}</b></div>
+      </section>
+      <section class="card card-lg"><h2 class="form-section">Risk after action (optional)</h2>
+        <div class="form-grid form-grid-3">
+          {{ field('new_severity', 'S', v('new_severity', item.new_severity), 'number', errors=errors, min=1, max=10, attrs='data-rpn2-s') }}
+          {{ field('new_occurrence', 'O', v('new_occurrence', item.new_occurrence), 'number', errors=errors, min=1, max=10, attrs='data-rpn2-o') }}
+          {{ field('new_detection', 'D', v('new_detection', item.new_detection), 'number', errors=errors, min=1, max=10, attrs='data-rpn2-d') }}
+        </div>
+        <div class="rpn-live">New RPN <b data-rpn2-out>{{ item.new_rpn if item.new_rpn is not none else '—' }}</b></div>
+      </section>
+      <div class="card row"><button class="btn btn-primary" type="submit">{{ icon('check') }} Save</button><a class="btn btn-ghost" href="{{ url_for('quality.fmea') }}">Cancel</a></div>
+    </aside>
+  </div>
+</form>
+{% if not is_new %}
+<form class="mt-2" method="post" action="{{ url_for('quality.fmea_delete', item_id=item.id) }}" data-confirm="Delete this failure mode?" data-confirm-ok="Delete"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-danger-soft btn-sm" type="submit">{{ icon('trash') }} Delete</button></form>
+{% endif %}
+{% endblock %}

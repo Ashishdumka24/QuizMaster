@@ -1,0 +1,48 @@
+{% extends "layouts/app.html" %}
+{% from "macros/ui.html" import page_head, pagination, empty with context %}
+{% from "tqm/_macros.html" import sev_badge, dstatus_badge with context %}
+{% block title %}Defect log{% endblock %}
+{% block content %}
+{% set qs = args.to_dict() %}{% set _ = qs.pop('page', None) %}
+{% call page_head('Defect log & check sheet', 'Every defect found in development, testing or reported by users — the source data for Pareto and Fishbone.') %}
+  <div class="dropdown" data-dropdown><button class="btn btn-ghost" type="button" aria-haspopup="true" aria-expanded="false">{{ icon('download') }} Export</button>
+    <div class="dropdown-menu dropdown-right" role="menu">{% for f, l in [('csv', 'CSV'), ('xlsx', 'Excel'), ('pdf', 'PDF')] %}{% set _ = qs.update({'format': f}) %}<a class="dropdown-item" href="{{ url_for('quality.defects_export', **qs) }}">{{ l }}</a>{% endfor %}</div></div>
+  <a class="btn btn-primary" href="{{ url_for('quality.defect_new') }}">{{ icon('plus') }} Log defect</a>
+{% endcall %}
+{% include "tqm/_nav.html" %}
+<section class="card card-flush mb-3">
+  <div class="card-head" style="padding:1.1rem 1.2rem 0"><h2>{{ icon('list-checks') }} Check sheet — occurrences by type × severity</h2><span class="text-sm text-muted">{{ sheet.grand_total }} total occurrences</span></div>
+  {% if sheet.rows %}
+  <div class="table-wrap"><table class="table table-compact checksheet">
+    <thead><tr><th>Defect type</th>{% for s in sheet.severities %}<th class="text-center">{{ s }}</th>{% endfor %}<th class="text-center">Total</th><th>Tally</th></tr></thead>
+    <tbody>{% for r in sheet.rows %}<tr><td>{{ r.type }}</td>{% for s in sheet.severities %}<td class="text-center">{{ r.sev[s] or '' }}</td>{% endfor %}<td class="text-center"><b>{{ r.total }}</b></td>
+      <td class="tally" aria-label="{{ r.total }}">{% for i in range((r.total // 5) | int) %}<span class="tally-5">||||</span> {% endfor %}{{ '|' * (r.total % 5) }}</td></tr>{% endfor %}</tbody>
+    <tfoot><tr><th>Total</th>{% for s in sheet.severities %}<th class="text-center">{{ sheet.totals[s] }}</th>{% endfor %}<th class="text-center">{{ sheet.grand_total }}</th><th></th></tr></tfoot>
+  </table></div>
+  {% else %}<div style="padding:1rem">{{ empty('No defects logged', 'Log the first defect to start the check sheet.', 'list-checks') }}</div>{% endif %}
+</section>
+<form class="filters" method="get" role="search">
+  <div class="grow">{{ icon('search') }}<label class="sr-only" for="d-q">Search</label><input class="input" id="d-q" type="search" name="q" value="{{ args.get('q', '') }}" placeholder="ID, title or module…"></div>
+  {% for name, label, opts in [('status', 'Any status', statuses), ('severity', 'Any severity', severities), ('defect_type', 'Any type', types)] %}
+  <label class="sr-only" for="d-{{ name }}">{{ label }}</label><select class="select" id="d-{{ name }}" name="{{ name }}" data-autosubmit><option value="">{{ label }}</option>{% for o in opts %}<option{{ ' selected' if args.get(name) == o }}>{{ o }}</option>{% endfor %}</select>
+  {% endfor %}
+  <label class="sr-only" for="d-source">Source</label><select class="select" id="d-source" name="source" data-autosubmit><option value="">Any source</option>{% for k, v in sources.items() %}<option value="{{ k }}"{{ ' selected' if args.get('source') == k }}>{{ v }}</option>{% endfor %}</select>
+  <button class="btn btn-soft" type="submit">Apply</button>
+  {% if qs | length > 1 %}<a class="btn btn-ghost" href="{{ url_for('quality.defects') }}">{{ icon('x') }} Clear</a>{% endif %}
+</form>
+{% if page.items %}
+<div class="card card-flush"><div class="table-wrap"><table class="table table-stack">
+  <thead><tr><th>ID</th><th>Defect</th><th>Type</th><th>Fishbone</th><th>Severity</th><th>Status</th><th>Occ.</th><th>Detected</th><th></th></tr></thead>
+  <tbody>{% for d in page.items %}<tr>
+    <td data-label="ID"><code>{{ d.code }}</code></td>
+    <td data-label="Defect"><a class="fw-600" href="{{ url_for('quality.defect_edit', defect_id=d.id) }}">{{ d.title }}</a><div class="text-xs text-muted">{{ d.module or '' }}{% if d.source == 'user_report' %} · user report{% if d.reporter %} by {{ d.reporter.full_name }}{% endif %}{% endif %}</div></td>
+    <td data-label="Type">{{ d.defect_type }}</td><td data-label="Fishbone">{{ d.fishbone_category }}</td>
+    <td data-label="Severity">{{ sev_badge(d.severity) }}</td><td data-label="Status">{{ dstatus_badge(d.status) }}</td>
+    <td data-label="Occurrences">{{ d.occurrences }}</td><td data-label="Detected" class="text-xs">{{ d.detected_at | dt('%d %b %Y') }}</td>
+    <td class="text-right"><a class="btn btn-soft btn-xs" href="{{ url_for('quality.defect_edit', defect_id=d.id) }}">Open</a></td>
+  </tr>{% endfor %}</tbody></table></div></div>
+{{ pagination(page, 'quality.defects') }}
+{% else %}
+<div class="card">{{ empty('No defects match', 'Adjust filters or log a new defect.', 'bug', url_for('quality.defect_new'), 'Log defect', 'plus') }}</div>
+{% endif %}
+{% endblock %}

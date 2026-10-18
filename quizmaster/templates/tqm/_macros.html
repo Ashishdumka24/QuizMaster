@@ -1,0 +1,11 @@
+{% macro sev_badge(s) -%}<span class="badge {{ {'Low': 'badge-outline', 'Medium': 'badge-info', 'High': 'badge-warn', 'Critical': 'badge-bad'}.get(s, 'badge-outline') }}">{{ s }}</span>{%- endmacro %}
+{% macro dstatus_badge(s) -%}<span class="badge {{ {'Open': 'badge-bad', 'In Progress': 'badge-warn', 'Resolved': 'badge-ok', 'Verified': 'badge-ok', 'Closed': 'badge-dark'}.get(s, 'badge-outline') }}">{{ s }}</span>{%- endmacro %}
+{% macro rpn_cell(r) -%}<span class="rpn {{ 'crit' if r >= 200 else ('high' if r >= 120 else ('med' if r >= 60 else 'low')) }}">{{ r }}</span>{%- endmacro %}
+{% macro ctq_card(title, value, unit, target, ok, ic, foot) -%}
+<div class="card ctq-card {{ 'ok' if ok == true else ('bad' if ok == false else 'na') }}">
+  <div class="row-between"><span class="stat-icon">{{ icon(ic) }}</span>{% if ok == true %}<span class="badge badge-ok">{{ icon('check') }} On target</span>{% elif ok == false %}<span class="badge badge-bad">Off target</span>{% else %}<span class="badge badge-outline">Awaiting data</span>{% endif %}</div>
+  <div class="stat-label mt-1">{{ title }}</div>
+  <div class="stat-value">{{ value if value is not none else '—' }}{% if value is not none and unit %}<small> {{ unit }}</small>{% endif %}</div>
+  <div class="stat-foot">Target {{ target }}{% if foot %} · {{ foot }}{% endif %}</div>
+</div>
+{%- endmacro %}

@@ -1,0 +1,53 @@
+{% extends "layouts/app.html" %}
+{% from "macros/ui.html" import page_head with context %}
+{% block title %}SIPOC & CTQ tree{% endblock %}
+{% block content %}
+{% call page_head('SIPOC & CTQ tree', 'Process-centric view of the quiz-taking process and how customer needs translate into measurable requirements.') %}
+  <button type="button" class="btn btn-ghost" data-print>{{ icon('printer') }} Print</button>
+{% endcall %}
+{% include "tqm/_nav.html" %}
+<section class="card card-lg">
+  <h2 style="margin-top:0;font-size:1.15rem">SIPOC — Online Quiz System: “take a quiz and receive a graded result”</h2>
+  <div class="sipoc">
+    {% for title, letter, items in [
+      ('Suppliers', 'S', ['Administrators / faculty (quiz & question authors)', 'Students (answers)', 'SMTP email provider', 'Server / hosting environment', 'Python, Flask & SQLite']),
+      ('Inputs', 'I', ['Question bank & quiz settings (time limit, pass mark, release rule)', 'Verified student account', 'Answers & review marks', 'Server clock (deadline)', 'Email configuration']),
+      ('Process', 'P', ['1. Register & verify email (OTP)', '2. Browse & start quiz (snapshot frozen)', '3. Answer — autosave every change', '4. Submit, or auto-submit at deadline', '5. Server auto-grades from snapshot', '6. Release result & answer review']),
+      ('Outputs', 'O', ['Graded attempt record (score, %, pass)', 'Result page, review & certificate', 'Notifications', 'Analytics & exported reports', 'Audit trail & quality metrics']),
+      ('Customers', 'C', ['Students', 'Administrators / faculty', 'Institution / exam cell', 'TQM course reviewers']),
+    ] %}
+    <div class="sipoc-col"><div class="sipoc-head"><span>{{ letter }}</span>{{ title }}</div><ul>{% for i in items %}<li>{{ i }}</li>{% endfor %}</ul></div>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="card card-lg mt-3">
+  <h2 style="margin-top:0;font-size:1.15rem">CTQ tree — from customer need to measurable requirement</h2>
+  <div class="ctq-tree">
+    <div class="ctq-need"><span class="text-xs">Customer need (VOC)</span><b>“My quiz submits instantly, is graded fairly, and I never lose answers.”</b></div>
+    <div class="ctq-branches">
+      {% set rows = [
+        ('Speed', 'Submission feels instant', 'p95 server submission time < ' ~ ctq.submit.target|int ~ ' ms', ctq.submit.p95, ' ms', ctq.submit.n),
+        ('Reliability', 'Answers are never lost', 'Autosave success ≥ ' ~ ctq.targets.autosave_success_pct ~ '%', ctq.autosave.success_pct, '%', ctq.autosave.n),
+        ('Accuracy', 'Grading is correct and repeatable', 'Re-grading reproduces stored score in 100% of attempts', none, '', none),
+        ('Satisfaction', 'The experience is pleasant', '≥ ' ~ ctq.targets.csat_pct|int ~ '% of ratings are 4–5★', ctq.feedback.csat, '%', ctq.feedback.n),
+      ] %}
+      {% for driver, need, req, val, unit, n in rows %}
+      <div class="ctq-branch">
+        <div class="ctq-driver"><span class="text-xs">Driver</span><b>{{ driver }}</b><span class="text-xs text-muted">{{ need }}</span></div>
+        <div class="ctq-req"><span class="text-xs">CTQ requirement</span><b>{{ req }}</b>
+          <span class="text-xs">{% if driver == 'Accuracy' %}Checked live on the <a href="{{ url_for('quality.overview') }}">TQM overview</a>{% elif val is not none %}Current: <b>{{ val }}{{ unit }}</b> ({{ n }} samples){% else %}Current: awaiting real data{% endif %}</span></div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="card card-lg mt-3">
+  <h2 style="margin-top:0;font-size:1.15rem">Quality goals Q01–Q20 (BBAT104 guidelines) → where they live in QuizMaster</h2>
+  <p class="text-sm text-muted">Full traceability with test evidence: <code>docs/TQM/QUALITY_GOALS_MATRIX.md</code>.</p>
+  <div class="table-wrap"><table class="table table-compact table-stack"><thead><tr><th>Code</th><th>Quality goal</th><th>Suggested features (guideline)</th><th>Implemented as</th></tr></thead><tbody>
+    {% for g in goals %}<tr><td data-label="Code"><b>{{ g.code }}</b></td><td data-label="Goal">{{ g.goal }}</td><td data-label="Suggested" class="text-xs">{{ g.suggested }}</td><td data-label="Implemented" class="text-sm">{{ g.implemented }}</td></tr>{% endfor %}
+  </tbody></table></div>
+</section>
+{% endblock %}

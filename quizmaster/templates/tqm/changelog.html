@@ -1,0 +1,36 @@
+{% extends "layouts/app.html" %}
+{% from "macros/ui.html" import page_head, field, textarea, select, empty with context %}
+{% block title %}Version log{% endblock %}
+{% block content %}
+{% call page_head('Version log', 'Every release and what changed — the public changelog page shows the same entries.') %}
+  <a class="btn btn-ghost" href="{{ url_for('public.changelog') }}">{{ icon('external') }} Public changelog</a>
+{% endcall %}
+{% include "tqm/_nav.html" %}
+<div class="grid-main">
+  <section class="timeline">
+    {% for e in entries %}
+    <article class="card timeline-item">
+      <div class="row-between"><div class="row" style="gap:.5rem"><span class="badge badge-dark">v{{ e.version }}</span><span class="badge {{ {'feature': 'badge-accent', 'fix': 'badge-bad', 'improvement': 'badge-info', 'security': 'badge-warn'}.get(e.change_type, 'badge-outline') }}">{{ e.change_type }}</span></div>
+        <span class="text-xs text-muted">{{ e.released_on.strftime('%d %b %Y') }}</span></div>
+      <h3 style="margin:.5rem 0 .3rem;font-size:1.05rem">{{ e.title }}</h3>
+      <ul class="text-sm" style="margin:0;padding-left:1.1rem;color:var(--ink-2)">{% for line in e.changes.splitlines() if line.strip() %}<li>{{ line.strip().lstrip('-•* ') }}</li>{% endfor %}</ul>
+      <form class="mt-1" method="post" action="{{ url_for('quality.changelog_delete', entry_id=e.id) }}" data-confirm="Delete version {{ e.version }} from the log?" data-confirm-ok="Delete"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-ghost btn-xs" type="submit">{{ icon('trash') }} Delete</button></form>
+    </article>
+    {% else %}<div class="card">{{ empty('No versions recorded', 'Add the first release with the form.', 'history') }}</div>{% endfor %}
+  </section>
+  <aside>
+    <form class="card card-lg" method="post" style="position:sticky;top:calc(var(--topbar-h) + 1rem)">
+      <h2 style="margin-top:0;font-size:1.1rem">Add version</h2>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-grid">
+        {{ field('version', 'Version', form.get('version', ''), errors=errors, required=True, maxlength=20, placeholder='1.1.0') }}
+        {{ field('released_on', 'Release date', form.get('released_on', today), 'date', errors=errors, required=True) }}
+      </div>
+      {{ field('title', 'Title', form.get('title', ''), errors=errors, required=True, maxlength=160) }}
+      {{ select('change_type', 'Type', [('feature', 'Feature'), ('improvement', 'Improvement'), ('fix', 'Fix'), ('security', 'Security')], form.get('change_type', 'feature')) }}
+      {{ textarea('changes', 'Changes (one per line)', form.get('changes', ''), errors=errors, required=True, rows=5, maxlength=4000) }}
+      <button class="btn btn-primary" type="submit">{{ icon('plus') }} Add to log</button>
+    </form>
+  </aside>
+</div>
+{% endblock %}

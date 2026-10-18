@@ -1,0 +1,58 @@
+{% extends "layouts/app.html" %}
+{% from "tqm/_macros.html" import sev_badge, dstatus_badge, rpn_cell with context %}
+{% block title %}TQM report{% endblock %}
+{% block content %}
+<div class="row-between no-print mb-2">
+  <ol class="breadcrumbs"><li><a href="{{ url_for('quality.overview') }}">TQM centre</a></li><li><span aria-current="page">Report</span></li></ol>
+  <div class="row"><a class="btn btn-ghost" href="{{ url_for('quality.defects_export', format='xlsx') }}">{{ icon('download') }} Defects (Excel)</a><a class="btn btn-ghost" href="{{ url_for('quality.fmea_export', format='xlsx') }}">{{ icon('download') }} FMEA (Excel)</a><button type="button" class="btn btn-primary" data-print>{{ icon('printer') }} Print / save as PDF</button></div>
+</div>
+<article class="report">
+  <header class="report-head">
+    <div>{{ logo_svg() | safe }}</div>
+    <div><h1>QuizMaster — TQM Quality Report</h1>
+      <p>BBAT104 Fundamentals of TQM · Online Quiz System · Core goal: <b>zero latency during submissions &amp; auto-grading</b></p>
+      <p class="text-xs">Generated {{ generated | dt }} (IST) from live data · v{{ app_version }}</p></div>
+  </header>
+
+  <h2>1. Critical-to-Quality metrics</h2>
+  <table class="table table-compact"><thead><tr><th>CTQ</th><th>Target</th><th>Measured</th><th>Samples</th></tr></thead><tbody>
+    <tr><td>p95 submission processing</td><td>&lt; {{ ctq.submit.target | int }} ms</td><td>{{ (ctq.submit.p95 ~ ' ms') if ctq.submit.p95 is not none else 'awaiting data' }}</td><td>{{ ctq.submit.n }}</td></tr>
+    <tr><td>Autosave success</td><td>≥ {{ ctq.targets.autosave_success_pct }}%</td><td>{{ (ctq.autosave.success_pct ~ '%') if ctq.autosave.success_pct is not none else 'awaiting data' }}</td><td>{{ ctq.autosave.n }}</td></tr>
+    <tr><td>Grading reproducibility</td><td>100%</td><td>{{ (repro.accuracy ~ '%') if repro.accuracy is not none else 'awaiting data' }}</td><td>{{ repro.checked }}</td></tr>
+    <tr><td>Customer satisfaction (4–5★)</td><td>≥ {{ ctq.targets.csat_pct | int }}%</td><td>{{ (ctq.feedback.csat ~ '%') if ctq.feedback.csat is not none else 'awaiting data' }}</td><td>{{ ctq.feedback.n }}</td></tr>
+  </tbody></table>
+
+  <h2>2. Defect log &amp; check sheet</h2>
+  <p>{{ defects.total }} defects recorded · {{ defects.open }} open · closure rate {{ (defects.closure_rate ~ '%') if defects.closure_rate is not none else '—' }}.</p>
+  {% if sheet.rows %}<table class="table table-compact"><thead><tr><th>Type</th>{% for s in sheet.severities %}<th>{{ s }}</th>{% endfor %}<th>Total</th></tr></thead><tbody>{% for r in sheet.rows %}<tr><td>{{ r.type }}</td>{% for s in sheet.severities %}<td>{{ r.sev[s] or '' }}</td>{% endfor %}<td><b>{{ r.total }}</b></td></tr>{% endfor %}</tbody></table>{% endif %}
+  <table class="table table-compact"><thead><tr><th>ID</th><th>Defect</th><th>Type</th><th>Fishbone</th><th>Sev.</th><th>Status</th><th>Root cause → corrective action</th></tr></thead><tbody>
+    {% for d in defect_rows %}<tr><td>{{ d.code }}</td><td>{{ d.title }}</td><td>{{ d.defect_type }}</td><td>{{ d.fishbone_category }}</td><td>{{ d.severity }}</td><td>{{ d.status }}</td><td class="text-xs">{{ d.root_cause or '—' }} → {{ d.corrective_action or '—' }}</td></tr>{% endfor %}
+  </tbody></table>
+
+  <h2 class="page-break">3. Pareto analysis (80/20)</h2>
+  {% if pareto['items'] %}<img class="chart-img" src="{{ url_for('quality.chart_png', name='pareto') }}" alt="Pareto chart of defects" width="1100" height="560">
+  <p>Vital few: <b>{{ pareto.vital_few | join(', ') }}</b>.</p>{% else %}<p>No defects yet.</p>{% endif %}
+
+  <h2>4. Fishbone (Ishikawa) root-cause diagram</h2>
+  <img class="chart-img" src="{{ url_for('quality.chart_png', name='fishbone') }}" alt="Fishbone diagram" width="1200" height="640">
+
+  <h2 class="page-break">5. FMEA (RPN = S × O × D)</h2>
+  <p>{{ fmea_sum.count }} failure modes · highest RPN {{ fmea_sum.max_rpn or '—' }} · {{ fmea_sum.high }} high-risk{% if fmea_sum.risk_reduction is not none %} · estimated RPN reduction after actions {{ fmea_sum.risk_reduction }}%{% endif %}.</p>
+  <table class="table table-compact"><thead><tr><th>Step</th><th>Failure mode</th><th>S</th><th>O</th><th>D</th><th>RPN</th><th>Action</th><th>New RPN</th></tr></thead><tbody>
+    {% for i in fmea %}<tr><td>{{ i.process_step }}</td><td>{{ i.failure_mode }}</td><td>{{ i.severity }}</td><td>{{ i.occurrence }}</td><td>{{ i.detection }}</td><td>{{ rpn_cell(i.rpn) }}</td><td class="text-xs">{{ i.recommended_action or '' }}</td><td>{{ i.new_rpn if i.new_rpn is not none else '—' }}</td></tr>{% endfor %}
+  </tbody></table>
+
+  <h2>6. Statistical process control</h2>
+  {% if cc.n >= 2 %}<img class="chart-img" src="{{ url_for('quality.chart_png', name='control') }}" alt="Control chart" width="1100" height="520">
+  <p>{{ cc.n }} samples · mean {{ cc.mean }} ms · UCL {{ cc.ucl }} ms · LCL {{ cc.lcl }} ms · {{ cc.out_of_control | length }} out-of-control points.</p>
+  {% else %}<p>Not enough real submissions yet to draw a control chart (need ≥ 2; ≥ 20 recommended).</p>{% endif %}
+
+  <h2 class="page-break">7. PDCA improvement log</h2>
+  {% for p in pdca %}<div class="report-pdca"><b>{{ p.title }}</b> — stage <b>{{ p.stage }}</b>{% if p.defect %} · {{ p.defect.code }}{% endif %}
+    <dl>{% for k in ['plan', 'do', 'check', 'act'] if p[k] %}<dt>{{ k | capitalize }}</dt><dd>{{ p[k] }}</dd>{% endfor %}</dl>
+    {% if p.metric_name %}<p class="text-xs">Metric: {{ p.metric_name }} · baseline {{ p.baseline_value or '—' }} · target {{ p.target_value or '—' }} · result {{ p.result_value or 'not yet measured' }}</p>{% endif %}</div>
+  {% else %}<p>No PDCA actions recorded.</p>{% endfor %}
+
+  <footer class="report-foot text-xs">All values are computed from the QuizMaster database at generation time. Metrics marked “awaiting data” have no real measurements yet; nothing in this report is simulated.</footer>
+</article>
+{% endblock %}

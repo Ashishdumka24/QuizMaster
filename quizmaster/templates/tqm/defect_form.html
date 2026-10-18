@@ -1,0 +1,46 @@
+{% extends "layouts/app.html" %}
+{% from "macros/ui.html" import page_head, field, textarea, select with context %}
+{% from "tqm/_macros.html" import dstatus_badge with context %}
+{% block title %}{{ 'Log defect' if is_new else d.code }}{% endblock %}
+{% block content %}
+{% macro v(name, default) %}{{ form.get(name, default if default is not none else '') }}{% endmacro %}
+{% call page_head('Log defect' if is_new else d.code ~ ' · ' ~ d.title, None, [('TQM centre', url_for('quality.overview')), ('Defect log', url_for('quality.defects')), ('New' if is_new else d.code, None)]) %}
+  {% if not is_new %}{{ dstatus_badge(d.status) }}<a class="btn btn-ghost" href="{{ url_for('quality.pdca_new', defect=d.id) }}">{{ icon('refresh') }} Start PDCA action</a>{% endif %}
+{% endcall %}
+<form method="post" novalidate data-dirty-guard>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="grid-main">
+    <div class="stack" style="--gap:1.25rem">
+      <section class="card card-lg"><h2 class="form-section">{{ icon('bug') }} Defect</h2>
+        {{ field('title', 'Title', v('title', d.title), errors=errors, required=True, maxlength=160) }}
+        {{ field('module', 'Module / page', v('module', d.module), maxlength=60, placeholder='e.g. quiz.api_submit') }}
+        {{ textarea('description', 'Description', v('description', d.description), rows=3, maxlength=3000) }}
+        {{ textarea('steps_to_reproduce', 'Steps to reproduce', v('steps_to_reproduce', d.steps_to_reproduce), rows=3, maxlength=3000) }}
+        {% if d.reporter_email %}<p class="text-xs text-muted">Reporter contact: {{ d.reporter_email }}</p>{% endif %}
+      </section>
+      <section class="card card-lg"><h2 class="form-section">{{ icon('search') }} Root cause &amp; actions</h2>
+        {{ textarea('root_cause', 'Root cause (5 Whys)', v('root_cause', d.root_cause), rows=3, maxlength=3000, hint='Used as the cause text on the fishbone diagram.') }}
+        {{ textarea('corrective_action', 'Corrective action', v('corrective_action', d.corrective_action), errors=errors, rows=3, maxlength=3000, hint='Required before status can be Resolved, Verified or Closed.') }}
+        {{ textarea('preventive_action', 'Preventive action', v('preventive_action', d.preventive_action), rows=3, maxlength=3000) }}
+      </section>
+    </div>
+    <aside class="stack" style="--gap:1.25rem">
+      <section class="card card-lg"><h2 class="form-section">{{ icon('sliders') }} Classification</h2>
+        <div class="field"><label class="label" for="f-defect_type">Defect type (Pareto category)</label><select class="select" id="f-defect_type" name="defect_type">{% set cur = v('defect_type', d.defect_type) %}{% for t in types %}<option{{ ' selected' if cur == t }}>{{ t }}</option>{% endfor %}</select>{% if errors.defect_type %}<p class="error-text">{{ errors.defect_type }}</p>{% endif %}</div>
+        <div class="field"><label class="label" for="f-fishbone_category">Fishbone category</label><select class="select" id="f-fishbone_category" name="fishbone_category">{% set cur = v('fishbone_category', d.fishbone_category) %}{% for t in fishbone %}<option{{ ' selected' if cur == t }}>{{ t }}</option>{% endfor %}</select></div>
+        <div class="form-grid">
+          <div class="field"><label class="label" for="f-severity">Severity</label><select class="select" id="f-severity" name="severity">{% set cur = v('severity', d.severity) %}{% for t in severities %}<option{{ ' selected' if cur == t }}>{{ t }}</option>{% endfor %}</select></div>
+          {{ field('occurrences', 'Occurrences', v('occurrences', d.occurrences), 'number', errors=errors, min=1, max=10000) }}
+        </div>
+        <div class="field"><label class="label" for="f-status">Status</label><select class="select" id="f-status" name="status">{% set cur = v('status', d.status) %}{% for t in statuses %}<option{{ ' selected' if cur == t }}>{{ t }}</option>{% endfor %}</select>{% if errors.status %}<p class="error-text">{{ errors.status }}</p>{% endif %}</div>
+        <div class="field"><label class="label" for="f-source">Source</label><select class="select" id="f-source" name="source">{% set cur = v('source', d.source) %}{% for k, l in sources.items() %}<option value="{{ k }}"{{ ' selected' if cur == k }}>{{ l }}</option>{% endfor %}</select></div>
+        {% if not is_new %}<ul class="list-divided text-xs text-muted"><li>Detected {{ d.detected_at | dt }}</li>{% if d.resolved_at %}<li>Resolved {{ d.resolved_at | dt }}</li>{% endif %}{% if d.verified_at %}<li>Verified {{ d.verified_at | dt }}</li>{% endif %}</ul>{% endif %}
+      </section>
+      <div class="card row"><button class="btn btn-primary" type="submit">{{ icon('check') }} Save defect</button><a class="btn btn-ghost" href="{{ url_for('quality.defects') }}">Cancel</a></div>
+    </aside>
+  </div>
+</form>
+{% if not is_new %}
+<form class="mt-2" method="post" action="{{ url_for('quality.defect_delete', defect_id=d.id) }}" data-confirm="Delete defect {{ d.code }}? Linked PDCA actions are kept but unlinked." data-confirm-ok="Delete"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-danger-soft btn-sm" type="submit">{{ icon('trash') }} Delete defect</button></form>
+{% endif %}
+{% endblock %}

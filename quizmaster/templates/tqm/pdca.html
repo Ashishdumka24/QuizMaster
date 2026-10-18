@@ -1,0 +1,29 @@
+{% extends "layouts/app.html" %}
+{% from "macros/ui.html" import page_head, empty with context %}
+{% block title %}PDCA log{% endblock %}
+{% block content %}
+{% call page_head('PDCA improvement log', 'Plan → Do → Check → Act. Each card is a continuous-improvement (Kaizen) action with a measurable target.') %}
+  <a class="btn btn-primary" href="{{ url_for('quality.pdca_new') }}">{{ icon('plus') }} New PDCA action</a>
+{% endcall %}
+{% include "tqm/_nav.html" %}
+{% if items %}
+<div class="kanban">
+  {% for st in stages %}
+  <section class="kanban-col stage-{{ st | lower }}" aria-label="{{ st }}">
+    <header><b>{{ st }}</b><span class="badge badge-outline">{{ board[st] | length }}</span></header>
+    {% for i in board[st] %}
+    <a class="card kanban-card" href="{{ url_for('quality.pdca_edit', item_id=i.id) }}">
+      <b class="text-sm">{{ i.title }}</b>
+      {% if i.objective %}<p class="text-xs text-muted clamp-2" style="margin:.3rem 0 0">{{ i.objective }}</p>{% endif %}
+      {% if i.metric_name %}<div class="text-xs mt-1"><span class="text-muted">{{ i.metric_name }}:</span> {{ i.baseline_value or '?' }} → <b>{{ i.target_value or '?' }}</b>{% if i.result_value %} · now {{ i.result_value }}{% endif %}</div>{% endif %}
+      <div class="row text-xs text-muted mt-1" style="gap:.4rem">{% if i.defect %}<span class="badge badge-outline">{{ i.defect.code }}</span>{% endif %}{% if i.owner %}<span>{{ i.owner }}</span>{% endif %}{% if i.due_date %}<span>{{ icon('calendar') }} {{ i.due_date.strftime('%d %b') }}</span>{% endif %}</div>
+    </a>
+    {% else %}<p class="text-xs text-muted" style="margin:.4rem">No actions in {{ st }}.</p>{% endfor %}
+  </section>
+  {% endfor %}
+</div>
+<div class="callout mt-3">{{ icon('shield') }} Poka-yoke: an action cannot move to a later stage until the earlier stage’s notes are filled in (e.g. Check requires Do).</div>
+{% else %}
+<div class="card">{{ empty('No PDCA actions yet', 'Start one from a defect or a high-RPN FMEA risk.', 'refresh', url_for('quality.pdca_new'), 'New PDCA action', 'plus') }}</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,20 @@
+{% extends "layouts/app.html" %}
+{% from "macros/ui.html" import page_head with context %}
+{% from "tqm/_macros.html" import sev_badge with context %}
+{% block title %}Fishbone diagram{% endblock %}
+{% block content %}
+{% call page_head('Ishikawa (fishbone) diagram', 'Root causes grouped into People, Process, Software Code and Infrastructure. Generated with Python/Matplotlib.') %}
+  <a class="btn btn-soft" href="{{ url_for('quality.chart_png', name='fishbone', download=1) }}">{{ icon('download') }} Download PNG</a>
+{% endcall %}
+{% include "tqm/_nav.html" %}
+<section class="card"><figure style="margin:0"><img class="chart-img" src="{{ url_for('quality.chart_png', name='fishbone') }}" alt="Fishbone diagram with the effect '{{ data.effect }}' and four cause categories." loading="lazy" width="1200" height="640">
+  <figcaption class="text-xs text-muted mt-1">Effect: <b>{{ data.effect }}</b>. Each bone lists root causes from the defect log (highest occurrences first).</figcaption></figure></section>
+<div class="grid grid-2 mt-3">
+  {% for cat, causes in data.groups.items() %}
+  <section class="card"><div class="card-head"><h2>{{ icon({'People': 'users', 'Process': 'git-branch', 'Software Code': 'code', 'Infrastructure': 'server'}.get(cat, 'circle')) }} {{ cat }}</h2><span class="badge badge-accent">{{ causes | length }}</span></div>
+    {% for c in causes %}<div class="activity-item"><code class="text-xs">{{ c.code }}</code><div style="flex:1;min-width:0" class="text-sm">{{ c.cause }}<div class="text-xs text-muted">{{ c.type }}</div></div>{{ sev_badge(c.severity) }}</div>
+    {% else %}<p class="text-sm text-muted" style="margin:0">No causes recorded in this category yet.</p>{% endfor %}
+  </section>
+  {% endfor %}
+</div>
+{% endblock %}

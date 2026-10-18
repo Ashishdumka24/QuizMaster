@@ -1,0 +1,37 @@
+{% extends "layouts/app.html" %}
+{% from "macros/ui.html" import page_head, chart with context %}
+{% from "tqm/_macros.html" import ctq_card, sev_badge with context %}
+{% block title %}TQM centre{% endblock %}
+{% block content %}
+{% call page_head('TQM centre', 'Total Quality Management for the Online Quiz System — quality goal: zero latency during submissions & auto-grading.') %}
+  <a class="btn btn-primary" href="{{ url_for('quality.report') }}">{{ icon('printer') }} Consolidated report</a>
+{% endcall %}
+{% include "tqm/_nav.html" %}
+<div class="callout mb-3">{{ icon('info') }} All figures are computed live from the database. Where a metric says “Awaiting data”, there are not yet enough real quiz attempts to measure it — nothing is simulated.</div>
+<h2 class="section-title">Critical-to-Quality metrics</h2>
+<div class="grid grid-4">
+  {{ ctq_card('p95 submission processing', ctq.submit.p95, 'ms', '< ' ~ ctq.submit.target|int ~ ' ms', (ctq.submit.p95 < ctq.submit.target) if ctq.submit.p95 is not none else none, 'zap', ctq.submit.n ~ ' submissions measured') }}
+  {{ ctq_card('Autosave success', ctq.autosave.success_pct, '%', '≥ ' ~ ctq.targets.autosave_success_pct ~ '%', (ctq.autosave.success_pct >= ctq.targets.autosave_success_pct) if ctq.autosave.success_pct is not none else none, 'save', ctq.autosave.n ~ ' autosave calls') }}
+  {{ ctq_card('Grading reproducibility', repro.accuracy, '%', '100%', (repro.accuracy >= 100) if repro.accuracy is not none else none, 'check-circle', repro.checked ~ ' attempts re-graded') }}
+  {{ ctq_card('Customer satisfaction', ctq.feedback.csat, '%', '≥ ' ~ ctq.targets.csat_pct|int ~ '% rate 4–5★', (ctq.feedback.csat >= ctq.targets.csat_pct) if ctq.feedback.csat is not none else none, 'star', ctq.feedback.n ~ ' ratings') }}
+</div>
+<div class="grid grid-4 mt-2">
+  <a class="card stat card-hover" href="{{ url_for('quality.defects') }}"><span class="stat-icon coral">{{ icon('bug') }}</span><div><div class="stat-label">Defects logged</div><div class="stat-value">{{ defects.total }}</div><div class="stat-foot">{{ defects.open }} open · closure {{ (defects.closure_rate ~ '%') if defects.closure_rate is not none else '—' }}</div></div></a>
+  <a class="card stat card-hover" href="{{ url_for('quality.fmea') }}"><span class="stat-icon purple">{{ icon('alert') }}</span><div><div class="stat-label">FMEA risks</div><div class="stat-value">{{ fmea.count }}</div><div class="stat-foot">max RPN {{ fmea.max_rpn or '—' }} · {{ fmea.high }} high (≥120){% if fmea.risk_reduction is not none %} · −{{ fmea.risk_reduction }}% after actions{% endif %}</div></div></a>
+  <a class="card stat card-hover" href="{{ url_for('quality.pdca') }}"><span class="stat-icon teal">{{ icon('refresh') }}</span><div><div class="stat-label">PDCA actions</div><div class="stat-value">{{ pdca.values() | sum }}</div><div class="stat-foot">{% for s, n in pdca.items() %}{{ s }} {{ n }}{{ ' · ' if not loop.last }}{% endfor %}</div></div></a>
+  <a class="card stat card-hover" href="{{ url_for('quality.control') }}"><span class="stat-icon indigo">{{ icon('activity') }}</span><div><div class="stat-label">Control chart</div><div class="stat-value" style="font-size:1.3rem">{% if cc.n >= 2 %}{{ cc.out_of_control | length }} <small>signals</small>{% else %}—{% endif %}</div><div class="stat-foot">{{ cc.n }} samples{% if cc.mean is defined %} · mean {{ cc.mean }} ms · UCL {{ cc.ucl }} ms{% endif %}</div></div></a>
+</div>
+<div class="grid-main mt-3">
+  <section class="card"><div class="card-head"><h2>Pareto of defects (80/20)</h2><a class="btn btn-ghost btn-xs" href="{{ url_for('quality.pareto') }}">Matplotlib chart {{ icon('chevron-right') }}</a></div>
+    {{ chart('bar', pareto['items'] | map(attribute='label'), pareto['items'] | map(attribute='count'), 'Defect occurrences by type, highest first', 240, empty_text='No defects logged yet.') }}
+    {% if pareto.vital_few %}<p class="text-sm mt-1" style="margin-bottom:0"><b>Vital few:</b> {{ pareto.vital_few | join(', ') }} account for ~80% of occurrences — prioritise these.</p>{% endif %}</section>
+  <section class="card"><h2 style="margin-top:0;font-size:1.05rem">TQM principles in this app</h2>
+    <ul class="list-divided text-sm">
+      <li><b>Customer focus</b> — feedback ratings, bug reports, CSAT metric.</li>
+      <li><b>Kaizen</b> — PDCA tracker and version log record each improvement.</li>
+      <li><b>Process-centric</b> — SIPOC map of the quiz-taking process.</li>
+      <li><b>Fact-based decisions</b> — Pareto, control chart and item analysis from live data.</li>
+      <li><b>Poka-yoke</b> — server-enforced timer, idempotent submission, duplicate detection, validation.</li>
+    </ul></section>
+</div>
+{% endblock %}

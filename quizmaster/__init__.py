@@ -202,7 +202,7 @@ def _register_template_helpers(app: Flask) -> None:
     from .security import dashboard_url_for
 
     app.jinja_env.filters.update(dt=fmt_dt, duration=fmt_duration, ago=time_ago, iso=iso_utc, local=to_local,
-                                  local_input=utc_to_local_input)
+                                  local_input=utc_to_local_input, pairs=lambda seq: [(x, x) for x in seq])
     from .icons import JS_ICONS, icon, logo_svg
     app.jinja_env.globals.update(icon=icon, logo_svg=logo_svg, JS_ICONS=JS_ICONS)
     app.jinja_env.trim_blocks = True

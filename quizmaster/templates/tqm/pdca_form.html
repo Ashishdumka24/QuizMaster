@@ -1,0 +1,46 @@
+{% extends "layouts/app.html" %}
+{% from "macros/ui.html" import page_head, field, textarea, select with context %}
+{% block title %}{{ 'New PDCA action' if is_new else item.title }}{% endblock %}
+{% block content %}
+{% macro v(name, default) %}{{ form.get(name, default if default is not none else '') }}{% endmacro %}
+{{ page_head('New PDCA action' if is_new else item.title, None, [('TQM centre', url_for('quality.overview')), ('PDCA', url_for('quality.pdca')), ('New' if is_new else 'Edit', None)]) }}
+<form method="post" novalidate data-dirty-guard>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="grid-main">
+    <div class="stack" style="--gap:1.25rem">
+      <section class="card card-lg">
+        {{ field('title', 'Title', v('title', item.title), errors=errors, required=True, maxlength=160) }}
+        {{ field('objective', 'Objective', v('objective', item.objective), maxlength=300) }}
+      </section>
+      {% for key, label, hint, ic in [('plan', 'Plan', 'Problem, root cause, target and the change you will make.', 'map'), ('do', 'Do', 'What was implemented, where and when.', 'tool'), ('check', 'Check', 'Measured results compared with the target.', 'bar-chart'), ('act', 'Act', 'Standardise if it worked, or adjust and repeat.', 'refresh')] %}
+      <section class="card card-lg pdca-step step-{{ key }}">
+        <h2 class="form-section">{{ icon(ic) }} {{ label }}</h2>
+        {{ textarea(key, label ~ ' notes', v(key, item[key]), errors=errors, rows=3, maxlength=3000, hint=hint) }}
+      </section>
+      {% endfor %}
+    </div>
+    <aside class="stack" style="--gap:1.25rem">
+      <section class="card card-lg">
+        {{ select('stage', 'Stage', stages | pairs, v('stage', item.stage)) }}
+        <div class="field"><label class="label" for="f-defect_id">Linked defect</label>
+          <select class="select" id="f-defect_id" name="defect_id"><option value="">— None —</option>{% set cur = v('defect_id', item.defect_id) | string %}{% for d in defects %}<option value="{{ d.id }}"{{ ' selected' if cur == d.id | string }}>{{ d.code }} · {{ d.title[:60] }}</option>{% endfor %}</select></div>
+        {{ field('owner', 'Owner', v('owner', item.owner), maxlength=80) }}
+        {{ field('due_date', 'Due date', v('due_date', item.due_date.isoformat() if item.due_date else ''), 'date', errors=errors) }}
+      </section>
+      <section class="card card-lg"><h2 class="form-section">{{ icon('target') }} Metric</h2>
+        {{ field('metric_name', 'Metric', v('metric_name', item.metric_name), maxlength=100, placeholder='e.g. p95 submission time (ms)') }}
+        <div class="form-grid form-grid-3">
+          {{ field('baseline_value', 'Baseline', v('baseline_value', item.baseline_value), maxlength=60) }}
+          {{ field('target_value', 'Target', v('target_value', item.target_value), maxlength=60) }}
+          {{ field('result_value', 'Result', v('result_value', item.result_value), maxlength=60) }}
+        </div>
+        <p class="hint">Record only measured values. Leave Result blank until you have real data.</p>
+      </section>
+      <div class="card row"><button class="btn btn-primary" type="submit">{{ icon('check') }} Save</button><a class="btn btn-ghost" href="{{ url_for('quality.pdca') }}">Cancel</a></div>
+    </aside>
+  </div>
+</form>
+{% if not is_new %}
+<form class="mt-2" method="post" action="{{ url_for('quality.pdca_delete', item_id=item.id) }}" data-confirm="Delete this PDCA action?" data-confirm-ok="Delete"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-danger-soft btn-sm" type="submit">{{ icon('trash') }} Delete</button></form>
+{% endif %}
+{% endblock %}

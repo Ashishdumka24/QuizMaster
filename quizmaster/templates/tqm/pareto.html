@@ -1,0 +1,26 @@
+{% extends "layouts/app.html" %}
+{% from "macros/ui.html" import page_head, empty with context %}
+{% block title %}Pareto analysis{% endblock %}
+{% block content %}
+{% call page_head('Pareto analysis (80/20)', 'Which few defect types cause most of the problems? Generated with Python/Matplotlib from the defect log.') %}
+  <a class="btn btn-soft" href="{{ url_for('quality.chart_png', name='pareto', download=1) }}">{{ icon('download') }} Download PNG</a>
+{% endcall %}
+{% include "tqm/_nav.html" %}
+{% if data['items'] %}
+<section class="card"><figure style="margin:0"><img class="chart-img" src="{{ url_for('quality.chart_png', name='pareto') }}" alt="Pareto chart: bars show defect occurrences by type in descending order; a line shows the cumulative percentage with an 80% reference line." loading="lazy" width="1100" height="560">
+  <figcaption class="text-xs text-muted mt-1">Bars: occurrences per defect type (descending). Line: cumulative % (right axis). Dashed line: 80% threshold.</figcaption></figure></section>
+<div class="grid-main mt-3">
+  <section class="card card-flush"><div class="table-wrap"><table class="table">
+    <thead><tr><th>Defect type</th><th class="text-right">Occurrences</th><th class="text-right">% of total</th><th class="text-right">Cumulative %</th><th>Class</th></tr></thead>
+    <tbody>{% for i in data['items'] %}<tr><td>{{ i.label }}</td><td class="text-right">{{ i.count }}</td><td class="text-right">{{ i.pct }}%</td><td class="text-right">{{ i.cum_pct }}%</td><td>{% if i.vital %}<span class="badge badge-bad">Vital few</span>{% else %}<span class="badge badge-outline">Useful many</span>{% endif %}</td></tr>{% endfor %}</tbody>
+    <tfoot><tr><th>Total</th><th class="text-right">{{ data.total }}</th><th class="text-right">100%</th><th></th><th></th></tr></tfoot>
+  </table></div></section>
+  <aside class="card"><h2 style="margin-top:0;font-size:1.05rem">{{ icon('lightbulb') }} Interpretation</h2>
+    <p class="text-sm" style="color:var(--ink-2)">The <b>vital few</b> — {{ data.vital_few | join(', ') }} — make up the first ~80% of all {{ data.total }} recorded occurrences. Corrective effort (PDCA actions) should target these categories first.</p>
+    <p class="text-xs text-muted">Rule: a category is “vital” if the cumulative share <i>before</i> it is below 80%. With a small number of defects the 80/20 split is indicative only.</p>
+    <a class="btn btn-soft btn-sm" href="{{ url_for('quality.pdca_new') }}">{{ icon('refresh') }} Plan a PDCA action</a></aside>
+</div>
+{% else %}
+<div class="card">{{ empty('No defects logged yet', 'The Pareto chart is built from the defect log.', 'bar-chart', url_for('quality.defect_new'), 'Log a defect', 'plus') }}</div>
+{% endif %}
+{% endblock %}

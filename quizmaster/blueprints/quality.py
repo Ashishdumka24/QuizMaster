@@ -343,7 +343,8 @@ def pdca_delete(item_id):
 
 @bp.route("/sipoc")
 def sipoc():
-    return render_template("tqm/sipoc.html", ctq=ctq_metrics())
+    from ..quality_goals import QUALITY_GOALS
+    return render_template("tqm/sipoc.html", ctq=ctq_metrics(), goals=QUALITY_GOALS)
 
 
 @bp.route("/changelog", methods=["GET", "POST"])

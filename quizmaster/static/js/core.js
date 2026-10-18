@@ -650,4 +650,18 @@
       });
     }
   });
+
+  /* FMEA form: live RPN = S x O x D. */
+  $$("form[data-rpn]").forEach(function (f) {
+    var calc = function (pfx) {
+      var s = $("[data-" + pfx + "-s]", f), o = $("[data-" + pfx + "-o]", f), d = $("[data-" + pfx + "-d]", f), out = $("[data-" + pfx + "-out]", f);
+      if (!s || !out) return;
+      var v = [s, o, d].map(function (i) { var n = parseInt(i.value, 10); return n >= 1 && n <= 10 ? n : null; });
+      var r = v.indexOf(null) === -1 ? v[0] * v[1] * v[2] : null;
+      out.textContent = r === null ? "—" : String(r);
+      out.className = r === null ? "" : (r >= 200 ? "rpn crit" : r >= 120 ? "rpn high" : r >= 60 ? "rpn med" : "rpn low");
+    };
+    f.addEventListener("input", function () { calc("rpn"); calc("rpn2"); });
+    calc("rpn"); calc("rpn2");
+  });
 })();

@@ -1,0 +1,35 @@
+{% extends "layouts/app.html" %}
+{% from "macros/ui.html" import page_head, empty with context %}
+{% from "tqm/_macros.html" import rpn_cell, sev_badge with context %}
+{% block title %}FMEA{% endblock %}
+{% block content %}
+{% call page_head('FMEA — Failure Mode & Effects Analysis', 'Risk Priority Number (RPN) = Severity × Occurrence × Detection, each rated 1–10. Sorted by RPN.') %}
+  <div class="dropdown" data-dropdown><button class="btn btn-ghost" type="button" aria-haspopup="true" aria-expanded="false">{{ icon('download') }} Export</button>
+    <div class="dropdown-menu dropdown-right" role="menu">{% for f, l in [('xlsx', 'Excel'), ('pdf', 'PDF'), ('csv', 'CSV')] %}<a class="dropdown-item" href="{{ url_for('quality.fmea_export', format=f) }}">{{ l }}</a>{% endfor %}<a class="dropdown-item" href="{{ url_for('quality.chart_png', name='fmea', download=1) }}">RPN chart (PNG)</a></div></div>
+  <a class="btn btn-primary" href="{{ url_for('quality.fmea_new') }}">{{ icon('plus') }} Add failure mode</a>
+{% endcall %}
+{% include "tqm/_nav.html" %}
+<div class="grid grid-4 mb-3">
+  <div class="card mini"><b>{{ summary.count }}</b><span>Failure modes</span></div>
+  <div class="card mini"><b>{{ summary.max_rpn or '—' }}</b><span>Highest RPN</span></div>
+  <div class="card mini"><b class="{{ 'bad' if summary.high else 'ok' }}">{{ summary.high }}</b><span>High risk (RPN ≥ 120)</span></div>
+  <div class="card mini"><b class="ok">{{ ('−' ~ summary.risk_reduction ~ '%') if summary.risk_reduction is not none else '—' }}</b><span>RPN reduction after actions</span></div>
+</div>
+{% if items %}
+<div class="card card-flush"><div class="table-wrap"><table class="table table-stack fmea-table">
+  <thead><tr><th>Process step</th><th>Failure mode</th><th>Effect</th><th>Cause</th><th>Current controls</th><th class="text-center" title="Severity">S</th><th class="text-center" title="Occurrence">O</th><th class="text-center" title="Detection">D</th><th class="text-center">RPN</th><th>Recommended action</th><th class="text-center">New RPN</th><th></th></tr></thead>
+  <tbody>{% for i in items %}<tr>
+    <td data-label="Step"><b>{{ i.process_step }}</b></td><td data-label="Failure mode">{{ i.failure_mode }}</td><td data-label="Effect" class="text-sm">{{ i.effect }}</td><td data-label="Cause" class="text-sm">{{ i.cause }}</td><td data-label="Controls" class="text-sm">{{ i.current_controls or '—' }}</td>
+    <td data-label="S" class="text-center">{{ i.severity }}</td><td data-label="O" class="text-center">{{ i.occurrence }}</td><td data-label="D" class="text-center">{{ i.detection }}</td>
+    <td data-label="RPN" class="text-center">{{ rpn_cell(i.rpn) }}<div class="text-xs text-muted">{{ i.risk_level }}</div></td>
+    <td data-label="Action" class="text-sm">{{ i.recommended_action or '—' }}<div class="text-xs text-muted">{{ i.owner or '' }} · {{ i.action_status }}</div></td>
+    <td data-label="New RPN" class="text-center">{% if i.new_rpn is not none %}{{ rpn_cell(i.new_rpn) }}{% else %}—{% endif %}</td>
+    <td class="text-right"><a class="btn btn-soft btn-xs" href="{{ url_for('quality.fmea_edit', item_id=i.id) }}">{{ icon('edit') }}<span class="sr-only">Edit</span></a></td>
+  </tr>{% endfor %}</tbody></table></div></div>
+<section class="card mt-3"><div class="card-head"><h2>RPN before vs after actions (Matplotlib)</h2></div>
+  <img class="chart-img" src="{{ url_for('quality.chart_png', name='fmea') }}" alt="Horizontal bar chart comparing RPN before and after recommended actions for each failure mode." loading="lazy" width="1100" height="600"></section>
+<p class="text-xs text-muted mt-1">Rating scales: Severity 1 (no effect) – 10 (hazardous, e.g. lost results); Occurrence 1 (remote) – 10 (almost certain); Detection 1 (certain to detect) – 10 (cannot detect). Risk bands: ≥200 critical, 120–199 high, 60–119 medium, &lt;60 low. Baseline ratings are the project team’s design-stage estimates.</p>
+{% else %}
+<div class="card">{{ empty('No failure modes yet', 'Add the first risk to start the FMEA.', 'alert', url_for('quality.fmea_new'), 'Add failure mode', 'plus') }}</div>
+{% endif %}
+{% endblock %}
