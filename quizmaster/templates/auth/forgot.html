@@ -1,0 +1,26 @@
+{% extends "layouts/auth.html" %}
+{% from "macros/ui.html" import field %}
+{% block title %}Forgot password{% endblock %}
+{% block panel %}
+{% if sent %}
+  <div class="auth-icon-hero">{{ icon('send') }}</div>
+  <h1>Check your email</h1>
+  <p class="sub">If an active account exists for <b>{{ email }}</b>, we’ve sent a password reset link. It expires in {{ ttl }} minutes and can be used once.</p>
+  {% if dev_outbox %}
+  <div class="alert alert-dev mb-2" role="status">{{ icon('wrench') }}<div><b>Development mode — no real email was sent.</b> Open the <a href="{{ url_for('public.dev_outbox') }}" target="_blank" rel="noopener">dev outbox</a> to view the message.</div></div>
+  {% endif %}
+  <div class="callout text-sm">{{ icon('info') }} For your security we show the same message whether or not the address is registered. Didn’t receive anything after a few minutes? Check your spam folder or try again.</div>
+  <div class="row mt-3"><a class="btn btn-primary" href="{{ url_for('auth.login') }}">{{ icon('arrow-left') }} Back to sign in</a><a class="btn btn-ghost" href="{{ url_for('auth.forgot_password') }}">Try another email</a></div>
+{% else %}
+  <div class="auth-icon-hero">{{ icon('key') }}</div>
+  <h1>Forgot your password?</h1>
+  <p class="sub">Enter the email address on your account and we’ll send you a secure link to choose a new password.</p>
+  {% if error %}<div class="alert alert-error mb-2" role="alert">{{ icon('x-circle') }}<div>{{ error }}</div></div>{% endif %}
+  <form method="post" action="{{ url_for('auth.forgot_password') }}" class="stack" style="--gap:1rem" novalidate>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    {{ field('email', 'Email address', email, type='email', required=True, autocomplete='email', placeholder='you@example.com', icon_name='mail', maxlength=254, attrs='autofocus') }}
+    <button type="submit" class="btn btn-primary btn-lg btn-block">{{ icon('send') }} Send reset link</button>
+  </form>
+  <p class="auth-alt">Remembered it? <a href="{{ url_for('auth.login') }}">Back to sign in</a></p>
+{% endif %}
+{% endblock %}

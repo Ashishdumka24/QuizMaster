@@ -122,3 +122,8 @@
   .user-chip .icon { display: none; }
   .page-head { align-items: flex-start; }
 }
+
+/* Theme toggle icon swap */
+[data-theme="dark"] .theme-moon, html:not([data-theme="dark"]) .theme-sun { display: none; }
+.auth-top { gap: .5rem; }
+.auth-top .btn { margin-left: auto; }

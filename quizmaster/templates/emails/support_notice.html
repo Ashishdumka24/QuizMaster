@@ -1,0 +1,11 @@
+{% extends "emails/_base.html" %}
+{% block body %}
+<h1 style="margin:0 0 12px;font-size:20px">New support message #{{ msg.id }}</h1>
+<table role="presentation" cellpadding="0" cellspacing="0" style="font-size:14px;color:#3F4269;margin-bottom:14px">
+<tr><td style="padding:2px 12px 2px 0;color:#6B7094">From</td><td>{{ msg.name }} &lt;{{ msg.email }}&gt;</td></tr>
+<tr><td style="padding:2px 12px 2px 0;color:#6B7094">Subject</td><td>{{ msg.subject }}</td></tr>
+</table>
+<div style="white-space:pre-line;font-size:14px;line-height:1.6;background:#F8F9FD;border-radius:12px;padding:14px;border:1px solid #EEF0F8">{{ msg.message }}</div>
+<p style="margin:16px 0 0;font-size:13px;color:#6B7094">Reply to the sender directly, then mark the message as replied in the admin inbox.</p>
+{% endblock %}
+{% block footer %}This is an internal notification for {{ app_name }} administrators.{% endblock %}

@@ -1,0 +1,120 @@
+{% extends "layouts/base.html" %}
+{% from "macros/ui.html" import brand, avatar %}
+{% block body_class %}has-mesh app-body{% endblock %}
+{% block body %}
+{% set ep = request.endpoint or '' %}
+{% set is_admin = current_user.is_admin %}
+<div class="app {{ 'app-admin' if is_admin else 'app-student' }}">
+  <aside class="sidebar" id="sidebar" aria-label="{{ 'Admin' if is_admin else 'Student' }} navigation">
+    {{ brand('brand-light' if is_admin else '') }}
+    {% if is_admin %}<span class="admin-tag">{{ icon('shield') }} Admin console</span>{% endif %}
+    {% macro link(endpoint, label, icon_name, active=None, count=None, url=None) -%}
+      {% set on = active if active is not none else (request.endpoint == endpoint) %}
+      <a class="side-link{% if on %} active{% endif %}" href="{{ url or url_for(endpoint) }}"{% if on %} aria-current="page"{% endif %}>
+        {{ icon(icon_name) }}<span>{{ label }}</span>{% if count %}<span class="count">{{ count }}</span>{% endif %}
+      </a>
+    {%- endmacro %}
+    {% if is_admin %}
+      <div class="side-section">Manage</div>
+      {{ link('admin.overview', 'Overview', 'dashboard') }}
+      {{ link('admin.users', 'Users', 'users', ep.startswith('admin.user')) }}
+      {{ link('admin.quizzes', 'Quizzes', 'layers', ep.startswith('admin.quiz')) }}
+      {{ link('admin.questions', 'Question bank', 'database', ep.startswith('admin.question')) }}
+      {{ link('admin.categories', 'Categories', 'folder') }}
+      {{ link('admin.results', 'Results', 'award', ep in ('admin.results', 'admin.attempt_detail')) }}
+      {{ link('admin.analytics', 'Analytics', 'bar-chart') }}
+      <div class="side-section">Communicate</div>
+      {{ link('admin.announcements', 'Announcements', 'megaphone') }}
+      {{ link('admin.inbox', 'Inbox & feedback', 'inbox') }}
+      <div class="side-section">Quality &amp; system</div>
+      {{ link('quality.overview', 'TQM centre', 'target', ep.startswith('quality.')) }}
+      {{ link('admin.audit', 'Audit logs', 'shield') }}
+      {{ link('admin.errors', 'Error log', 'bug') }}
+      {{ link('admin.backups', 'Backups', 'archive') }}
+      {{ link('admin.settings', 'Settings', 'settings', ep in ('admin.settings', 'admin.maintenance')) }}
+      <div class="side-section">Account</div>
+      {{ link('account.profile', 'Profile', 'user', ep in ('account.profile', 'account.security', 'account.settings')) }}
+    {% else %}
+      <div class="side-section">Learn</div>
+      {{ link('student.dashboard', 'Dashboard', 'dashboard') }}
+      {{ link('quiz.explore', 'Explore', 'compass', ep in ('quiz.explore', 'quiz.detail')) }}
+      {{ link('student.history', 'History', 'history') }}
+      {{ link('student.results', 'Results', 'award', ep in ('student.results', 'quiz.result', 'quiz.certificate')) }}
+      {{ link('quiz.leaderboard', 'Leaderboard', 'trophy') }}
+      {{ link('quiz.calendar_view', 'Calendar', 'calendar') }}
+      <div class="side-section">You</div>
+      {{ link('student.notifications', 'Notifications', 'bell', count=unread_count) }}
+      {{ link('account.profile', 'Profile', 'user', ep in ('account.profile', 'account.security')) }}
+      {{ link('account.settings', 'Settings', 'settings') }}
+      {{ link('public.help_center', 'Help', 'help', ep in ('public.help_center', 'student.feedback')) }}
+    {% endif %}
+    <div class="side-foot">
+      {% if is_admin %}
+      <div class="side-card"><strong>Quality first</strong>Track defects, FMEA and PDCA in the <a href="{{ url_for('quality.overview') }}">TQM centre →</a></div>
+      {% else %}
+      <div class="side-card"><strong>Keep the streak going</strong>Short daily practice beats cramming. <a href="{{ url_for('quiz.explore') }}">Find a quiz →</a></div>
+      {% endif %}
+      <form method="post" action="{{ url_for('auth.logout') }}" class="mt-1" data-no-loading>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="side-link w-full" style="border:0;background:none;cursor:pointer">{{ icon('log-out') }}<span>Log out</span></button>
+      </form>
+    </div>
+  </aside>
+  <div class="sidebar-scrim" aria-hidden="true"></div>
+
+  <div class="main">
+    <header class="topbar">
+      <button type="button" class="icon-btn menu-btn" data-sidebar-toggle aria-controls="sidebar" aria-expanded="false" aria-label="Open navigation">{{ icon('menu') }}</button>
+      <form class="topbar-search" role="search" method="get" action="{{ url_for('admin.questions') if is_admin else url_for('quiz.explore') }}">
+        {{ icon('search') }}
+        <label class="sr-only" for="top-search">{{ 'Search the question bank' if is_admin else 'Search quizzes' }}</label>
+        <input class="input" id="top-search" name="q" type="search" placeholder="{{ 'Search questions…' if is_admin else 'Search quizzes…' }}" data-search-focus
+               {% if not is_admin %}data-suggest="{{ url_for('quiz.suggest') }}"{% endif %} value="{{ request.args.get('q', '') if ep in ('quiz.explore', 'admin.questions') else '' }}">
+        <kbd>/</kbd>
+      </form>
+      <div class="topbar-actions">
+        <button type="button" class="icon-btn" data-theme-toggle aria-label="Toggle dark mode">{{ icon('moon', 'theme-moon') }}{{ icon('sun', 'theme-sun') }}</button>
+        <div class="dropdown" data-notif="{{ url_for('student.api_notifications') }}" data-notif-read="{{ url_for('student.api_notifications_read') }}" data-notif-page="{{ url_for('student.notifications') }}">
+          <button type="button" class="icon-btn" data-dropdown-toggle aria-haspopup="true" aria-expanded="false" aria-label="Notifications{% if unread_count %} ({{ unread_count }} unread){% endif %}">
+            {{ icon('bell') }}<span class="badge-dot" data-notif-badge {% if not unread_count %}hidden{% endif %}>{{ unread_count if unread_count < 10 else '9+' }}</span>
+          </button>
+          <div class="dropdown-menu notif-menu" role="menu">
+            <div class="row-between" style="padding:.4rem .5rem .6rem"><b>Notifications</b><button type="button" class="btn btn-xs btn-ghost" data-notif-readall>Mark all read</button></div>
+            <div class="notif-list" data-notif-list></div>
+            <div class="dropdown-sep"></div>
+            <a class="dropdown-item" href="{{ url_for('student.notifications') }}" style="justify-content:center">View all notifications</a>
+          </div>
+        </div>
+        <div class="dropdown">
+          <button type="button" class="user-chip" data-dropdown-toggle aria-haspopup="true" aria-expanded="false">
+            {{ avatar(current_user, 'avatar-sm') }}
+            <span class="who"><b>{{ current_user.first_name }}</b><small>{{ current_user.role }}</small></span>
+            {{ icon('chevron-down') }}
+          </button>
+          <div class="dropdown-menu" role="menu">
+            <div class="dropdown-head"><b>{{ current_user.full_name }}</b><div class="text-xs text-muted truncate">{{ current_user.email }}</div></div>
+            <a class="dropdown-item" role="menuitem" href="{{ home_url }}">{{ icon('dashboard') }} Dashboard</a>
+            <a class="dropdown-item" role="menuitem" href="{{ url_for('account.profile') }}">{{ icon('user') }} Profile</a>
+            <a class="dropdown-item" role="menuitem" href="{{ url_for('account.security') }}">{{ icon('shield') }} Security</a>
+            <a class="dropdown-item" role="menuitem" href="{{ url_for('account.settings') }}">{{ icon('sliders') }} Preferences</a>
+            {% if not is_admin %}<a class="dropdown-item" role="menuitem" href="{{ url_for('student.feedback') }}">{{ icon('message') }} Send feedback</a>{% endif %}
+            <a class="dropdown-item" role="menuitem" href="{{ url_for('public.shortcuts') }}">{{ icon('keyboard') }} Shortcuts</a>
+            <div class="dropdown-sep"></div>
+            <form method="post" action="{{ url_for('auth.logout') }}" data-no-loading>
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="dropdown-item danger" role="menuitem">{{ icon('log-out') }} Log out</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </header>
+    <main id="main" class="content" tabindex="-1">
+      {% block content %}{% endblock %}
+    </main>
+    <footer class="app-footer">
+      <span>{{ app_name }} v{{ app_version }}</span>
+      <span><a href="{{ url_for('public.help_center') }}">Help</a> · <a href="{{ url_for('public.privacy') }}">Privacy</a> · <a href="{{ url_for('public.terms') }}">Terms</a> · <a href="{{ url_for('public.changelog') }}">Changelog</a></span>
+    </footer>
+  </div>
+</div>
+{% endblock %}

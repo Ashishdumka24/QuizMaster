@@ -1,0 +1,47 @@
+{% extends "layouts/auth.html" %}
+{% from "macros/ui.html" import field, password_field, checkbox %}
+{% set admin = portal == 'admin' %}
+{% block title %}{{ 'Administrator sign in' if admin else 'Sign in' }}{% endblock %}
+{% block art_class %}{{ 'admin' if admin }}{% endblock %}
+{% block art %}
+{% if admin %}
+  <h2>The control room for <span>quality assessment.</span></h2>
+  <p>Manage quizzes, the question bank, results, users and the TQM quality centre — all from one secure console.</p>
+  <ul class="auth-points">
+    <li>{{ icon('shield') }} Role is verified on the server for every request</li>
+    <li>{{ icon('activity') }} Live CTQ metrics: submission latency &amp; autosave health</li>
+    <li>{{ icon('target') }} Pareto, fishbone, FMEA and PDCA built in</li>
+  </ul>
+{% else %}{{ super() }}{% endif %}
+{% endblock %}
+{% block panel %}
+<nav class="role-switch" aria-label="Choose sign-in portal">
+  <a href="{{ url_for('auth.login', next=next or None) }}" class="{{ 'active' if not admin }}" {% if not admin %}aria-current="page"{% endif %}>{{ icon('graduation-cap') }} Student</a>
+  <a href="{{ url_for('auth.login', portal='admin', next=next or None) }}" class="{{ 'active' if admin }}" {% if admin %}aria-current="page"{% endif %}>{{ icon('shield') }} Administrator</a>
+</nav>
+<h1>{{ 'Admin sign in' if admin else 'Welcome back' }} {{ '' if admin else '👋' }}</h1>
+<p class="sub">{{ 'Use your administrator credentials. Access is granted only to accounts with the admin role.' if admin else 'Sign in to continue your learning journey.' }}</p>
+
+{% if error %}
+<div class="alert alert-error mb-2" role="alert">{{ icon('x-circle') }}<div>{{ error }}{% if 'Incorrect' in error or 'Too many' in error %} <a href="{{ url_for('auth.forgot_password') }}">Forgot your password?</a>{% endif %}</div></div>
+{% endif %}
+
+<form method="post" action="{{ url_for('auth.login') }}" novalidate class="stack" style="--gap:1rem">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <input type="hidden" name="portal" value="{{ portal }}">
+  {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+  {{ field('email', 'Email address', form.email, type='email', required=True, autocomplete='username', placeholder='you@example.com', icon_name='mail', maxlength=254, attrs='autofocus inputmode="email"') }}
+  {{ password_field('password', 'Password', autocomplete='current-password', placeholder='Your password') }}
+  <div class="row-between">
+    {{ checkbox('remember', 'Keep me signed in', form.remember) }}
+    <a href="{{ url_for('auth.forgot_password') }}" class="text-sm fw-600">Forgot password?</a>
+  </div>
+  <button type="submit" class="btn {{ 'btn-dark' if admin else 'btn-primary' }} btn-lg btn-block">{{ icon('log-in') }} Sign in{{ ' to admin console' if admin }}</button>
+</form>
+{% if not admin %}
+<p class="auth-alt">New to QuizMaster? <a href="{{ url_for('auth.register') }}">Create a free account</a></p>
+{% else %}
+<p class="auth-alt text-sm">Administrator accounts are created by an existing admin or the setup CLI — they cannot be self-registered.</p>
+{% endif %}
+<p class="secure-note">{{ icon('lock') }} Protected by CSRF tokens, rate limiting and account lockout.</p>
+{% endblock %}

@@ -35,6 +35,10 @@ class Config:
     APP_ENV = os.environ.get("APP_ENV", "development").lower()
     APP_TIMEZONE = os.environ.get("APP_TIMEZONE", "Asia/Kolkata")
     APP_BASE_URL = os.environ.get("APP_BASE_URL", "http://127.0.0.1:5000").rstrip("/")
+    # When APP_BASE_URL is not set explicitly (local dev / preview), links in
+    # emails use the host of the current request instead. Always set it in
+    # production so links can never be influenced by a forged Host header.
+    APP_BASE_URL_EXPLICIT = bool(os.environ.get("APP_BASE_URL"))
 
     # --- Core security -----------------------------------------------------
     SECRET_KEY = os.environ.get("SECRET_KEY") or ""

@@ -1,0 +1,21 @@
+{% extends "layouts/auth.html" %}
+{% from "macros/ui.html" import password_field %}
+{% block title %}Reset password{% endblock %}
+{% block panel %}
+{% if invalid %}
+  <div class="auth-icon-hero" style="background:var(--grad-warm)">{{ icon('alert') }}</div>
+  <h1>This link can’t be used</h1>
+  <p class="sub">The password reset link is invalid, has expired, or was already used. Reset links are single-use and time-limited for your security.</p>
+  <div class="row"><a class="btn btn-primary" href="{{ url_for('auth.forgot_password') }}">{{ icon('refresh') }} Request a new link</a><a class="btn btn-ghost" href="{{ url_for('auth.login') }}">Back to sign in</a></div>
+{% else %}
+  <div class="auth-icon-hero">{{ icon('lock') }}</div>
+  <h1>Choose a new password</h1>
+  <p class="sub">After resetting, you’ll be signed out of every device and asked to sign in again.</p>
+  <form method="post" action="{{ url_for('auth.reset_password', token=token) }}" class="stack" style="--gap:1rem" novalidate>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    {{ password_field('password', 'New password', errors=errors, autocomplete='new-password', strength=True, placeholder='Create a strong password') }}
+    {{ password_field('confirm_password', 'Confirm new password', errors=errors, autocomplete='new-password', match='f-password', placeholder='Repeat the new password') }}
+    <button type="submit" class="btn btn-primary btn-lg btn-block">{{ icon('check-circle') }} Reset password</button>
+  </form>
+{% endif %}
+{% endblock %}

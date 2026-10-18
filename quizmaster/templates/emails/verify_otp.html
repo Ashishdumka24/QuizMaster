@@ -1,0 +1,10 @@
+{% extends "emails/_base.html" %}
+{% block body %}
+<h1 style="margin:0 0 12px;font-size:22px">Verify your email address</h1>
+<p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:#3F4269">Hi {{ user.first_name }}, use this code to finish creating your {{ app_name }} account:</p>
+<div style="text-align:center;margin:0 0 20px">
+  <span style="display:inline-block;font-size:34px;letter-spacing:12px;font-weight:800;padding:16px 24px 16px 36px;border-radius:14px;background:#EEF0FF;color:#3730A3;font-family:Consolas,Menlo,monospace">{{ code }}</span>
+</div>
+<p style="margin:0 0 8px;font-size:14px;color:#3F4269">The code expires in <b>{{ ttl }} minutes</b> and can be used only once.</p>
+<p style="margin:0;font-size:13px;color:#6B7094">Never share this code. {{ app_name }} staff will never ask you for it.</p>
+{% endblock %}

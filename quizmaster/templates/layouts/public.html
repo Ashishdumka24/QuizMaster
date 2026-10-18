@@ -1,0 +1,81 @@
+{% extends "layouts/base.html" %}
+{% from "macros/ui.html" import brand, avatar %}
+{% block body %}
+{% set ep = request.endpoint or '' %}
+<header class="site-header{% block header_class %}{% endblock %}">
+  <nav class="container nav" aria-label="Main">
+    {{ brand() }}
+    <button type="button" class="icon-btn nav-toggle" data-nav-toggle aria-controls="nav-links" aria-expanded="false" aria-label="Open menu">{{ icon('menu') }}</button>
+    <ul class="nav-links" id="nav-links">
+      <li><a class="nav-link{% if ep == 'public.home' %} active{% endif %}" href="{{ url_for('public.home') }}">Home</a></li>
+      <li><a class="nav-link{% if ep.startswith('quiz.') %} active{% endif %}" href="{{ url_for('quiz.explore') }}">Explore</a></li>
+      <li><a class="nav-link" href="{{ url_for('public.home') }}#features">Features</a></li>
+      <li><a class="nav-link" href="{{ url_for('public.home') }}#how">How it works</a></li>
+      <li><a class="nav-link{% if ep == 'public.about' %} active{% endif %}" href="{{ url_for('public.about') }}">About</a></li>
+      <li><a class="nav-link{% if ep in ('public.help_center', 'public.manual') %} active{% endif %}" href="{{ url_for('public.help_center') }}">Help</a></li>
+      {% if not current_user.is_authenticated %}
+      <li class="mobile-only"><a class="nav-link" href="{{ url_for('auth.login') }}">{{ icon('log-in') }} Sign in</a></li>
+      <li class="mobile-only"><a class="btn btn-primary btn-block mt-1" href="{{ url_for('auth.register') }}">Create account</a></li>
+      {% else %}
+      <li class="mobile-only"><a class="nav-link" href="{{ home_url }}">{{ icon('dashboard') }} My dashboard</a></li>
+      {% endif %}
+    </ul>
+    <div class="nav-actions">
+      <button type="button" class="icon-btn" data-theme-toggle aria-label="Toggle dark mode">{{ icon('moon', 'theme-moon') }}{{ icon('sun', 'theme-sun') }}</button>
+      {% if current_user.is_authenticated %}
+        <a class="btn btn-primary hide-mobile" href="{{ home_url }}">{{ icon('dashboard') }} Dashboard</a>
+      {% else %}
+        <a class="btn btn-ghost hide-mobile" href="{{ url_for('auth.login') }}">Sign in</a>
+        <a class="btn btn-primary hide-mobile" href="{{ url_for('auth.register') }}">Create account {{ icon('arrow-right') }}</a>
+      {% endif %}
+    </div>
+  </nav>
+</header>
+
+<main id="main" tabindex="-1">
+  {% block content %}{% endblock %}
+</main>
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        {{ brand('brand-light', url_for('public.home')) }}
+        <p style="margin-top:1rem;max-width:340px;font-size:.92rem">An online quiz system built for fast, fair and transparent assessment — with timed quizzes, instant server-side grading and a built-in Total Quality Management centre.</p>
+        <p class="text-xs" style="color:#8287B5">BBAT104 · Total Quality Management · Session 2026–27</p>
+      </div>
+      <div>
+        <h4>Product</h4>
+        <ul>
+          <li><a href="{{ url_for('quiz.explore') }}">Explore quizzes</a></li>
+          <li><a href="{{ url_for('quiz.leaderboard') }}">Leaderboard</a></li>
+          <li><a href="{{ url_for('quiz.calendar_view') }}">Quiz calendar</a></li>
+          <li><a href="{{ url_for('public.changelog') }}">Changelog</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Support</h4>
+        <ul>
+          <li><a href="{{ url_for('public.help_center') }}">Help &amp; FAQ</a></li>
+          <li><a href="{{ url_for('public.manual') }}">User manual</a></li>
+          <li><a href="{{ url_for('public.help_center') }}#contact">Contact us</a></li>
+          <li><a href="{{ url_for('public.shortcuts') }}">Keyboard shortcuts</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Company</h4>
+        <ul>
+          <li><a href="{{ url_for('public.about') }}">About</a></li>
+          <li><a href="{{ url_for('public.privacy') }}">Privacy policy</a></li>
+          <li><a href="{{ url_for('public.terms') }}">Terms of use</a></li>
+          <li><a href="{{ url_for('auth.admin_login') }}">Administrator sign-in</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© {{ now_utc.year }} {{ app_name }} · v{{ app_version }}</span>
+      <span>Made with care for learners. No ads, no tracking.</span>
+    </div>
+  </div>
+</footer>
+{% endblock %}

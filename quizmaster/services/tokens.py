@@ -13,7 +13,7 @@ import hmac
 import secrets
 from datetime import timedelta
 
-from flask import current_app, url_for
+from flask import current_app, has_request_context, url_for
 
 from ..extensions import db
 from ..models import EmailOTP, PasswordResetToken, User
@@ -149,7 +149,10 @@ def issue_reset_token(user: User, ip: str | None = None) -> str:
                                       expires_at=now + timedelta(minutes=cfg["RESET_TOKEN_TTL_MINUTES"]),
                                       request_ip=ip))
     db.session.commit()
-    link = cfg["APP_BASE_URL"] + url_for("auth.reset_password", token=raw)
+    if cfg.get("APP_BASE_URL_EXPLICIT") or not has_request_context():
+        link = cfg["APP_BASE_URL"] + url_for("auth.reset_password", token=raw)
+    else:
+        link = url_for("auth.reset_password", token=raw, _external=True)
     return send_email(user.email, "Reset your QuizMaster password", "reset_password", user=user, link=link,
                       ttl=cfg["RESET_TOKEN_TTL_MINUTES"])
 

@@ -22,7 +22,7 @@ from email.message import EmailMessage
 from email.utils import formataddr, make_msgid, parseaddr
 from pathlib import Path
 
-from flask import current_app, render_template
+from flask import current_app, has_request_context, render_template, request
 
 from ..utils import slugify, utcnow
 
@@ -72,7 +72,10 @@ def send_email(to: str, subject: str, template: str, **context) -> str:
     """
     cfg = current_app.config
     context.setdefault("app_name", cfg["APP_NAME"])
-    context.setdefault("base_url", cfg["APP_BASE_URL"])
+    if cfg.get("APP_BASE_URL_EXPLICIT") or not has_request_context():
+        context.setdefault("base_url", cfg["APP_BASE_URL"])
+    else:
+        context.setdefault("base_url", request.url_root.rstrip("/"))
     context.setdefault("year", utcnow().year)
     html = render_template(f"emails/{template}.html", subject=subject, **context)
     text = _html_to_text(html)

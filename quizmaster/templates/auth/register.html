@@ -1,0 +1,54 @@
+{% extends "layouts/auth.html" %}
+{% from "macros/ui.html" import field, password_field %}
+{% block title %}Create account{% endblock %}
+{% block art %}
+  <h2>Your progress, <span>beautifully measured.</span></h2>
+  <p>Create a free student account to take quizzes, see detailed results and track your improvement over time.</p>
+  <ul class="auth-points">
+    <li>{{ icon('mail') }} Verify your email with a one-time code</li>
+    <li>{{ icon('bar-chart') }} Personal dashboard built from your real attempts</li>
+    <li>{{ icon('award') }} Earn certificates when you pass</li>
+  </ul>
+  <div class="auth-stage">
+    <div class="glass-card gc-1"><small>Your subjects</small>
+      <div class="opt">Mathematics · 3 quizzes</div><div class="opt ok">Science · improving ↑</div></div>
+    <div class="glass-card gc-2"><div class="big">A+</div><small>Grow with feedback</small></div>
+    <div class="glass-card gc-3"><span class="ic">{{ icon('trophy') }}</span><div><b>Leaderboard</b><br><small>Opt in or stay private</small></div></div>
+  </div>
+{% endblock %}
+{% block panel %}
+<h1>Create your account</h1>
+<p class="sub">It takes less than a minute. Already registered? <a href="{{ url_for('auth.login') }}" class="fw-600">Sign in</a></p>
+{% if not registration_open %}
+  <div class="alert alert-warning" role="status">{{ icon('lock') }}<div><b>Registration is currently closed.</b><br>New student sign-ups have been paused by the administrator. Please check back later or <a href="{{ url_for('public.help_center') }}#contact">contact support</a>.</div></div>
+{% else %}
+<form method="post" action="{{ url_for('auth.register') }}" enctype="multipart/form-data" class="stack" style="--gap:1rem" novalidate>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  {{ field('full_name', 'Full name', form.full_name, required=True, autocomplete='name', placeholder='e.g. Ananya Rao', icon_name='user', maxlength=120, errors=errors, attrs='autofocus') }}
+  {{ field('email', 'Email address', form.email, type='email', required=True, autocomplete='email', placeholder='you@example.com', icon_name='mail', maxlength=254, errors=errors, hint='We will send a 6-digit code to verify this address.') }}
+  {{ password_field('password', 'Password', errors=errors, autocomplete='new-password', strength=True, placeholder='Create a strong password') }}
+  {{ password_field('confirm_password', 'Confirm password', errors=errors, autocomplete='new-password', match='f-password', placeholder='Repeat your password') }}
+  <div class="field">
+    <span class="label">Profile photo <span class="text-faint fw-600">(optional)</span></span>
+    <div class="avatar-picker">
+      <span class="avatar" id="avatar-preview">{{ icon('camera') }}</span>
+      <div style="flex:1;min-width:0">
+        <label class="btn btn-soft btn-sm" for="f-avatar">{{ icon('upload') }} Choose image</label>
+        <input class="sr-only" type="file" id="f-avatar" name="avatar" accept="image/png,image/jpeg,image/webp,image/gif" data-preview="avatar-preview" data-max-bytes="{{ config.AVATAR_MAX_BYTES }}">
+        <div class="text-xs text-muted mt-1" id="f-avatar-name">PNG, JPG, WEBP or GIF · up to {{ (config.AVATAR_MAX_BYTES / 1048576) | round(1) }} MB</div>
+      </div>
+    </div>
+    {% if errors.avatar %}<p class="error-text">{{ icon('alert') }} {{ errors.avatar }}</p>{% endif %}
+  </div>
+  <div class="field">
+    <label class="check" for="f-terms">
+      <input type="checkbox" id="f-terms" name="accept_terms" value="1" required {% if errors.accept_terms %}aria-invalid="true"{% endif %}>
+      <span>I agree to the <a href="{{ url_for('public.terms') }}" target="_blank" rel="noopener">Terms of use</a> and <a href="{{ url_for('public.privacy') }}" target="_blank" rel="noopener">Privacy policy</a>.</span>
+    </label>
+    {% if errors.accept_terms %}<p class="error-text">{{ icon('alert') }} {{ errors.accept_terms }}</p>{% endif %}
+  </div>
+  <button type="submit" class="btn btn-primary btn-lg btn-block">{{ icon('user-plus') }} Create account</button>
+</form>
+<p class="secure-note">{{ icon('shield') }} Public sign-up always creates a student account. Passwords are stored as salted hashes.</p>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,56 @@
+<!doctype html>
+{% set p = user_prefs or {} %}
+<html lang="en" class="no-js"
+      data-auth="{{ '1' if current_user.is_authenticated else '0' }}"
+      data-theme-pref="{{ p.get('theme', 'system') }}"
+      data-theme="{{ 'dark' if p.get('theme') == 'dark' else 'light' }}"
+      {% if p.get('palette') and p.get('palette') != 'aurora' %}data-palette="{{ p.get('palette') }}"{% endif %}
+      {% if p.get('contrast') == 'high' %}data-contrast="high"{% endif %}
+      {% if p.get('reduce_motion') %}data-motion="reduce"{% endif %}
+      {% if p.get('font_scale') and p.get('font_scale') != 100 %}style="--font-scale: {{ (p.get('font_scale') / 100) | round(2) }}"{% endif %}
+      data-login-url="{{ url_for('auth.login') }}"
+      data-prefs-url="{{ url_for('account.api_prefs') }}"
+      data-shortcuts-url="{{ url_for('public.shortcuts') }}"
+      data-nav-explore="{{ url_for('quiz.explore') }}"
+      {% if current_user.is_authenticated %}
+      data-nav-dashboard="{{ home_url }}"
+      data-nav-profile="{{ url_for('account.profile') }}"
+      data-nav-settings="{{ url_for('account.settings') }}"
+      {% if not current_user.is_admin %}data-nav-history="{{ url_for('student.history') }}" data-nav-results="{{ url_for('student.results') }}"{% else %}data-nav-results="{{ url_for('admin.results') }}"{% endif %}
+      {% endif %}>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <meta name="description" content="{% block meta_description %}QuizMaster — an online quiz system with timed quizzes, instant server-side grading, analytics and a built-in TQM quality centre.{% endblock %}">
+  <meta name="theme-color" content="#4F46E5">
+  <title>{% block title %}{{ app_name }}{% endblock %} · {{ app_name }}</title>
+  <link rel="icon" href="{{ url_for('static', filename='img/favicon.svg') }}" type="image/svg+xml">
+  <script src="{{ url_for('static', filename='js/theme-init.js') }}"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Sora:wght@600;700;800&display=swap">
+  {% set v = app_version %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/core.css') }}?v={{ v }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components.css') }}?v={{ v }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/layout.css') }}?v={{ v }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/pages.css') }}?v={{ v }}">
+  {% block head %}{% endblock %}
+</head>
+<body class="{% block body_class %}has-mesh{% endblock %}">
+  <a class="skip-link" href="#main">Skip to main content</a>
+  {% if maintenance_banner %}
+  <div class="alert alert-warning" role="status" style="border-radius:0;justify-content:center;margin:0">{{ icon('megaphone') }}<div>{{ maintenance_banner }}</div></div>
+  {% endif %}
+  {% block body %}{% endblock %}
+
+  {% from "macros/ui.html" import flash_toasts %}
+  {{ flash_toasts() }}
+  {# Icon templates cloned by JavaScript (keeps scripts free of inline SVG strings). #}
+  {% for name in JS_ICONS %}<template id="icon-{{ name }}">{{ icon(name) }}</template>{% endfor %}
+  <noscript><div class="alert alert-info" style="position:fixed;bottom:1rem;left:1rem;right:1rem;z-index:999">{{ icon('info') }}<div>JavaScript is off. Most pages still work, but taking quizzes requires JavaScript for the timer and autosave.</div></div></noscript>
+  <script src="{{ url_for('static', filename='js/core.js') }}?v={{ v }}" defer></script>
+  <script src="{{ url_for('static', filename='js/charts.js') }}?v={{ v }}" defer></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>
