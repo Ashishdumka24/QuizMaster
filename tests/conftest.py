@@ -95,3 +95,10 @@ def admin_client(client):
 
 def no_dead_links(html: str) -> bool:
     return not re.search(r'href="#"', html)
+
+
+def pytest_sessionfinish(session, exitstatus):
+    """Report icon names that templates asked for but icons.py does not define."""
+    from quizmaster.icons import MISSING_ICONS
+    if MISSING_ICONS:
+        print("\nMISSING ICONS:", ", ".join(sorted(MISSING_ICONS)))
