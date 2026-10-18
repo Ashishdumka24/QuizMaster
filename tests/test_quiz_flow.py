@@ -79,3 +79,50 @@ def test_other_student_cannot_view_attempt(student_client, app):
     student_client.post("/auth/login", data={"email": "other@example.test", "password": "Other#Pass2026x"})
     assert student_client.get(f"/attempts/{aid}/result").status_code == 404
     assert student_client.get(f"/api/attempts/{aid}/state").status_code == 404
+
+
+def test_server_deadline_enforced(student_client, app):
+    """Answers after deadline + grace are rejected and the attempt is auto-finalised."""
+    from datetime import timedelta
+    _, slug = _quiz(app)
+    aid = _start(student_client, slug)
+    with app.app_context():
+        a = db.session.get(QuizAttempt, aid)
+        a.deadline_at = a.deadline_at - timedelta(hours=5)
+        a.started_at = a.started_at - timedelta(hours=5)
+        db.session.commit()
+    r = student_client.post(f"/api/attempts/{aid}/answers", json={"answers": []})
+    assert r.status_code == 409
+    with app.app_context():
+        a = db.session.get(QuizAttempt, aid)
+        assert a.status == "expired" and a.auto_submitted
+
+
+def test_snapshot_keeps_old_result_when_question_edited(student_client, app):
+    from quizmaster.models import Question, QuizQuestion
+    qid, slug = _quiz(app)
+    aid = _start(student_client, slug)
+    student_client.post(f"/api/attempts/{aid}/submit", json={})
+    with app.app_context():
+        before = db.session.get(QuizAttempt, aid).score
+        qq = QuizQuestion.query.filter_by(quiz_id=qid).first()
+        q = db.session.get(Question, qq.question_id)
+        q.text = "Edited after the attempt"
+        q.marks = 50
+        db.session.commit()
+    html = student_client.get(f"/attempts/{aid}/result").get_data(as_text=True)
+    assert "Edited after the attempt" not in html
+    with app.app_context():
+        assert db.session.get(QuizAttempt, aid).score == before
+
+
+def test_max_attempts_enforced(student_client, app):
+    qid, slug = _quiz(app)
+    with app.app_context():
+        q = db.session.get(Quiz, qid)
+        q.max_attempts = 1
+        db.session.commit()
+    aid = _start(student_client, slug)
+    student_client.post(f"/api/attempts/{aid}/submit", json={})
+    r = student_client.post(f"/quizzes/{slug}/start")
+    assert r.status_code == 302 and "/attempts/" not in r.location

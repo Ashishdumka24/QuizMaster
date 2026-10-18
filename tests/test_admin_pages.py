@@ -113,3 +113,24 @@ def test_exports(admin_client):
         r = admin_client.get(url)
         assert r.status_code == 200, url
         assert r.data, url
+
+
+def test_question_import_json_and_bad_file(admin_client, app):
+    import json as _json
+    payload = {"questions": [
+        {"type": "multiple", "question": "Which of these are TQM tools used in this project?",
+         "options": ["Pareto chart", "Fishbone diagram", "Bubble sort"], "correct": ["a", "b"], "difficulty": "easy"},
+        {"type": "fill", "question": "PDCA stands for Plan, Do, Check and ____.", "correct": "Act"},
+    ]}
+    r = admin_client.post("/admin/questions/import",
+                          data={"file": (io.BytesIO(_json.dumps(payload).encode()), "q.json")},
+                          content_type="multipart/form-data")
+    assert r.status_code == 200
+    with app.app_context():
+        assert Question.query.filter(Question.text.like("PDCA stands for%")).count() == 1
+    r = admin_client.post("/admin/questions/import", data={"file": (io.BytesIO(b"{not json"), "bad.json")},
+                          content_type="multipart/form-data")
+    assert r.status_code in (200, 400)
+    r = admin_client.post("/admin/questions/import", data={"file": (io.BytesIO(b"\xff\xfe\x00"), "x.exe")},
+                          content_type="multipart/form-data")
+    assert r.status_code in (200, 400)
