@@ -627,3 +627,9 @@
     ctl.addEventListener("change", upd); upd();
   });
 })();
+
+/* Range output mirror (settings text size). */
+(function () {
+  var r = document.getElementById("font-scale"), o = document.getElementById("fs-out");
+  if (r && o) r.addEventListener("input", function () { o.textContent = r.value + "%"; document.documentElement.style.setProperty("--font-scale", String(r.value / 100)); });
+})();

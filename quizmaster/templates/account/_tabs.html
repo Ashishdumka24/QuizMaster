@@ -1,0 +1,6 @@
+{% set ep = request.endpoint %}
+<nav class="tabs" aria-label="Account sections">
+  <a class="tab{{ ' active' if ep == 'account.profile' }}" href="{{ url_for('account.profile') }}"{% if ep == 'account.profile' %} aria-current="page"{% endif %}>{{ icon('user') }} Profile</a>
+  <a class="tab{{ ' active' if ep == 'account.security' }}" href="{{ url_for('account.security') }}"{% if ep == 'account.security' %} aria-current="page"{% endif %}>{{ icon('shield') }} Security</a>
+  <a class="tab{{ ' active' if ep == 'account.settings' }}" href="{{ url_for('account.settings') }}"{% if ep == 'account.settings' %} aria-current="page"{% endif %}>{{ icon('sliders') }} Preferences</a>
+</nav>

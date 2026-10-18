@@ -1,0 +1,34 @@
+{% extends "layouts/app.html" %}
+{% from "macros/ui.html" import password_field %}
+{% block title %}Security{% endblock %}
+{% block content %}
+{% include "account/_tabs.html" %}
+<div class="grid-main">
+  <section class="card card-lg">
+    <h2 style="margin-top:0;font-size:1.2rem">{{ icon('key') }} Change password</h2>
+    <p class="text-sm text-muted">Changing your password signs out all other devices. This device stays signed in.</p>
+    <form method="post" action="{{ url_for('account.security') }}" class="stack" style="--gap:1rem;max-width:480px" novalidate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      {{ password_field('current_password', 'Current password', errors=errors, autocomplete='current-password') }}
+      {{ password_field('new_password', 'New password', errors=errors, autocomplete='new-password', strength=True) }}
+      {{ password_field('confirm_password', 'Confirm new password', errors=errors, autocomplete='new-password', match='f-new_password') }}
+      <div><button type="submit" class="btn btn-primary">{{ icon('check') }} Update password</button></div>
+    </form>
+  </section>
+  <aside class="stack" style="--gap:1.25rem">
+    <section class="card"><h3 style="margin-top:0;font-size:1rem">{{ icon('activity') }} Account activity</h3>
+      <ul class="list-plain list-divided text-sm">
+        <li class="row-between"><span class="text-muted">Last sign-in</span><b>{{ current_user.last_login_at | dt if current_user.last_login_at else '—' }}</b></li>
+        <li class="row-between"><span class="text-muted">Email verified</span><b>{{ current_user.email_verified_at | dt if current_user.email_verified_at else 'No' }}</b></li>
+        <li class="row-between"><span class="text-muted">Account created</span><b>{{ current_user.created_at | dt('%d %b %Y') }}</b></li>
+      </ul>
+    </section>
+    <section class="card"><h3 style="margin-top:0;font-size:1rem">{{ icon('log-out') }} Sign out everywhere</h3>
+      <p class="text-sm text-muted">Lost a device or used a shared computer? End every session, including this one.</p>
+      <form method="post" action="{{ url_for('account.revoke_sessions') }}" data-confirm="All devices, including this one, will be signed out immediately." data-confirm-title="Sign out of all devices?" data-confirm-ok="Sign out everywhere">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit" class="btn btn-danger-soft btn-block">Sign out of all devices</button></form>
+    </section>
+    <section class="card callout text-sm">{{ icon('shield') }} <b>How we protect you:</b> salted password hashing, CSRF tokens on every form, rate limiting, lockout after {{ config.LOGIN_MAX_FAILURES }} failed sign-ins and HTTP-only session cookies.</section>
+  </aside>
+</div>
+{% endblock %}

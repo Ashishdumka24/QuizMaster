@@ -1,0 +1,52 @@
+{% extends "layouts/app.html" %}
+{% from "macros/ui.html" import checkbox %}
+{% block title %}Preferences{% endblock %}
+{% block content %}
+{% include "account/_tabs.html" %}
+{% set p = user_prefs %}
+<form method="post" action="{{ url_for('account.settings') }}" class="stack" style="--gap:1.25rem">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <input type="hidden" name="_full_form" value="1">
+  <section class="card card-lg">
+    <h2 style="margin-top:0;font-size:1.2rem">{{ icon('palette') }} Appearance</h2>
+    <p class="text-sm text-muted">Changes preview instantly. Press “Save preferences” to keep them on every device.</p>
+    <div class="stack" style="--gap:1.3rem">
+      <div><span class="label">Theme</span>
+        <div class="segmented" role="radiogroup" aria-label="Theme">
+          {% for v, l, ic in [('light', 'Light', 'sun'), ('dark', 'Dark', 'moon'), ('system', 'System', 'contrast')] %}
+          <label><input type="radio" name="theme" value="{{ v }}" data-pref-live="theme"{{ ' checked' if p.theme == v }}><span>{{ icon(ic) }} {{ l }}</span></label>{% endfor %}
+        </div></div>
+      <div><span class="label">Colour palette</span>
+        <div class="segmented" role="radiogroup" aria-label="Colour palette">
+          {% for v, l in palettes.items() %}<label><input type="radio" name="palette" value="{{ v }}" data-pref-live="palette"{{ ' checked' if p.palette == v }}><span>{{ l }}</span></label>{% endfor %}
+        </div></div>
+      <div><span class="label">Contrast</span>
+        <div class="segmented" role="radiogroup" aria-label="Contrast">
+          {% for v, l in [('normal', 'Standard'), ('high', 'High contrast')] %}<label><input type="radio" name="contrast" value="{{ v }}" data-pref-live="contrast"{{ ' checked' if p.contrast == v }}><span>{{ l }}</span></label>{% endfor %}
+        </div></div>
+      <div style="max-width:420px"><label class="label" for="font-scale">Text size: <output id="fs-out">{{ p.font_scale }}%</output></label>
+        <input type="range" id="font-scale" name="font_scale" min="85" max="130" step="5" value="{{ p.font_scale }}" data-pref-live="font_scale" class="w-full" aria-describedby="fs-hint">
+        <p class="hint" id="fs-hint">85% – 130%. Affects all text across QuizMaster.</p></div>
+      {{ checkbox('reduce_motion', 'Reduce motion', p.reduce_motion, switch=True, hint='Turns off animations such as confetti and floating cards.', attrs='data-pref-live="reduce_motion"') }}
+    </div>
+  </section>
+  <section class="card card-lg">
+    <h2 style="margin-top:0;font-size:1.2rem">{{ icon('bell') }} Privacy &amp; notifications</h2>
+    <div class="stack" style="--gap:1rem">
+      {{ checkbox('leaderboard_visible', 'Show me on leaderboards', p.leaderboard_visible, switch=True, hint='When off, your name never appears on public or quiz leaderboards.') }}
+      {{ checkbox('email_notifications', 'Email me important updates', p.email_notifications, switch=True, hint='Security emails (verification, password changes) are always sent.') }}
+    </div>
+  </section>
+  <div class="row"><button type="submit" class="btn btn-primary">{{ icon('check') }} Save preferences</button><a class="btn btn-ghost" href="{{ url_for('account.settings') }}">Discard changes</a></div>
+</form>
+
+<section class="card card-lg mt-3" id="danger" style="border-color:color-mix(in srgb, var(--bad) 35%, var(--line))">
+  <h2 style="margin-top:0;font-size:1.2rem" class="bad">{{ icon('alert') }} Danger zone</h2>
+  <p class="text-sm text-muted">Permanently delete your account, profile photo and all quiz attempts. This cannot be undone.{% if current_user.is_admin %} The last active administrator cannot be deleted.{% endif %}</p>
+  <form method="post" action="{{ url_for('account.delete_account') }}" class="row" style="align-items:flex-end" data-confirm="Your account, attempts and photo will be permanently deleted. This cannot be undone." data-confirm-title="Delete your account?" data-confirm-ok="Delete permanently">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="field" style="flex:1;min-width:220px;max-width:340px"><label class="label" for="del-pw">Confirm with your password</label><input class="input" type="password" id="del-pw" name="password" required autocomplete="current-password"></div>
+    <button type="submit" class="btn btn-danger">{{ icon('trash') }} Delete my account</button>
+  </form>
+</section>
+{% endblock %}

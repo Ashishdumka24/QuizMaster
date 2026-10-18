@@ -1,0 +1,65 @@
+{% extends "layouts/app.html" %}
+{% from "macros/ui.html" import field, textarea, avatar, score_pill %}
+{% block title %}Profile{% endblock %}
+{% block content %}
+{% include "account/_tabs.html" %}
+<section class="card card-flush fade-up">
+  <div class="profile-cover"></div>
+  <div class="profile-head">
+    <div class="avatar-edit">
+      <span id="avatar-big">{{ avatar(current_user, 'avatar-xl') }}</span>
+      <form method="post" action="{{ url_for('account.avatar_upload') }}" enctype="multipart/form-data" id="avatar-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label class="cam" for="avatar-input" title="Change photo">{{ icon('camera') }}<span class="sr-only">Change profile photo</span></label>
+        <input class="sr-only" type="file" id="avatar-input" name="avatar" accept="image/png,image/jpeg,image/webp,image/gif" data-autosubmit data-preview="avatar-big" data-max-bytes="{{ config.AVATAR_MAX_BYTES }}">
+      </form>
+    </div>
+    <div class="info">
+      <h1>{{ current_user.full_name }}</h1>
+      <div class="meta"><span>{{ icon('mail') }} {{ current_user.email }}</span>
+        <span>{{ icon('shield' if current_user.is_admin else 'graduation-cap') }} {{ current_user.role | capitalize }}</span>
+        <span>{{ icon('calendar') }} Joined {{ current_user.created_at | dt('%b %Y') }}</span>
+        {% if current_user.is_verified %}<span class="ok">{{ icon('check-circle') }} Email verified</span>{% endif %}</div>
+    </div>
+    {% if current_user.avatar_filename %}
+    <form method="post" action="{{ url_for('account.avatar_delete') }}" data-confirm="Your profile photo will be removed and replaced with your initials." data-confirm-title="Remove photo?">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-ghost btn-sm" type="submit">{{ icon('trash') }} Remove photo</button></form>
+    {% endif %}
+  </div>
+  <p class="text-xs text-muted" style="padding:0 1.8rem 1.2rem;margin:0">Photos are re-encoded on the server (PNG/JPG/WEBP/GIF, max {{ (config.AVATAR_MAX_BYTES / 1048576) | round(1) }} MB) and cropped to a square.</p>
+</section>
+
+<div class="grid-main mt-3">
+  <section class="card card-lg">
+    <h2 style="margin-top:0;font-size:1.2rem">Personal details</h2>
+    <form method="post" action="{{ url_for('account.profile') }}" class="stack" style="--gap:1rem" data-dirty-guard novalidate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-grid">
+        {{ field('full_name', 'Full name', request.form.get('full_name', current_user.full_name), required=True, errors=errors, maxlength=120, autocomplete='name') }}
+        <div class="field"><label class="label" for="f-email">Email address</label><input class="input" id="f-email" value="{{ current_user.email }}" disabled aria-describedby="email-hint"><p class="hint" id="email-hint">Email changes require support to protect your account.</p></div>
+        {{ field('institution', 'Institution', request.form.get('institution', current_user.institution or ''), maxlength=150, placeholder='e.g. Your college') }}
+        {{ field('program', 'Programme / class', request.form.get('program', current_user.program or ''), maxlength=120, placeholder='e.g. BBA, 1st year') }}
+        {{ field('phone', 'Phone (optional)', request.form.get('phone', current_user.phone or ''), type='tel', errors=errors, maxlength=20, autocomplete='tel') }}
+      </div>
+      {{ textarea('bio', 'Short bio', request.form.get('bio', current_user.bio or ''), rows=3, maxlength=500, placeholder='A sentence about you and your learning goals.') }}
+      <div class="row"><button type="submit" class="btn btn-primary">{{ icon('check') }} Save changes</button><a class="btn btn-ghost" href="{{ url_for('account.profile') }}">Cancel</a></div>
+    </form>
+  </section>
+  <aside class="stack" style="--gap:1.25rem">
+    {% if stats %}
+    <section class="card"><h3 style="margin-top:0;font-size:1rem">Your learning at a glance</h3>
+      <div class="grid grid-2" style="gap:.6rem">
+        <div class="callout text-center"><b style="font-size:1.4rem;display:block">{{ stats.total_attempts }}</b><span class="text-xs text-muted">Attempts</span></div>
+        <div class="callout text-center"><b style="font-size:1.4rem;display:block">{{ ('%.0f%%' | format(stats.avg_score)) if stats.avg_score is not none else '—' }}</b><span class="text-xs text-muted">Average</span></div>
+        <div class="callout text-center"><b style="font-size:1.4rem;display:block">{{ stats.passed }}</b><span class="text-xs text-muted">Passed</span></div>
+        <div class="callout text-center"><b style="font-size:1.4rem;display:block">{{ stats.streak }}</b><span class="text-xs text-muted">Day streak</span></div>
+      </div>
+    </section>
+    {% endif %}
+    <section class="card"><h3 style="margin-top:0;font-size:1rem">Recent attempts</h3>
+      {% for a in recent %}<div class="activity-item"><span style="flex:1;min-width:0" class="truncate text-sm"><b>{{ a.quiz.title }}</b></span><span class="text-xs text-muted">{{ a.started_at | ago }}</span></div>
+      {% else %}<p class="text-sm text-muted" style="margin:0">No attempts yet.</p>{% endfor %}
+    </section>
+  </aside>
+</div>
+{% endblock %}
