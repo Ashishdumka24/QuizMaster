@@ -1,5 +1,5 @@
 {% extends "layouts/app.html" %}
-{% from "macros/ui.html" import page_head, avatar, score_pill, empty %}
+{% from "macros/ui.html" import page_head, avatar, score_pill, empty with context %}
 {% block title %}Leaderboard{% endblock %}
 {% block content %}
 {% call page_head('Leaderboard', ('Best released score per student for “' ~ quiz.title ~ '”.') if quiz else 'Average of each student’s best score per quiz.') %}

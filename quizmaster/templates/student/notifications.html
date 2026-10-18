@@ -1,5 +1,5 @@
 {% extends "layouts/app.html" %}
-{% from "macros/ui.html" import page_head, pagination, empty %}
+{% from "macros/ui.html" import page_head, pagination, empty with context %}
 {% block title %}Notifications{% endblock %}
 {% block content %}
 {% call page_head('Notifications', 'Results, announcements and account messages.') %}

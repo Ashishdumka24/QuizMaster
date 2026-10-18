@@ -1,5 +1,5 @@
 {% extends "layouts/app.html" %}
-{% from "macros/ui.html" import page_head, pagination, score_pill, status_badge, empty %}
+{% from "macros/ui.html" import page_head, pagination, score_pill, status_badge, empty with context %}
 {% block title %}Attempt history{% endblock %}
 {% block content %}
 {% call page_head('Attempt history', 'Every quiz attempt you have started, newest first.') %}

@@ -44,7 +44,7 @@
   {% endif %}
   {% block body %}{% endblock %}
 
-  {% from "macros/ui.html" import flash_toasts %}
+  {% from "macros/ui.html" import flash_toasts with context %}
   {{ flash_toasts() }}
   {# Icon templates cloned by JavaScript (keeps scripts free of inline SVG strings). #}
   {% for name in JS_ICONS %}<template id="icon-{{ name }}">{{ icon(name) }}</template>{% endfor %}

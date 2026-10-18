@@ -1,5 +1,5 @@
 {% extends "layouts/app.html" %}
-{% from "macros/ui.html" import status_badge %}
+{% from "macros/ui.html" import status_badge with context %}
 {% block title %}Result · {{ quiz.title }}{% endblock %}
 {% block content %}
 {% set own = attempt.user_id == current_user.id %}

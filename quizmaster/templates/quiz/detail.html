@@ -1,5 +1,5 @@
 {% extends "layouts/app.html" if current_user.is_authenticated and current_user.is_verified else "layouts/public.html" %}
-{% from "macros/ui.html" import difficulty_badge, status_badge, score_pill, avatar %}
+{% from "macros/ui.html" import difficulty_badge, status_badge, score_pill, avatar with context %}
 {% block title %}{{ quiz.title }}{% endblock %}
 {% block content %}
 {% set in_app = current_user.is_authenticated and current_user.is_verified %}

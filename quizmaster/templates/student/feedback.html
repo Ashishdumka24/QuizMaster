@@ -1,5 +1,5 @@
 {% extends "layouts/app.html" %}
-{% from "macros/ui.html" import page_head, field, textarea, select, status_badge %}
+{% from "macros/ui.html" import page_head, field, textarea, select, status_badge with context %}
 {% block title %}Feedback & bug reports{% endblock %}
 {% block content %}
 {{ page_head('Feedback & bug reports', 'Your input drives our continuous improvement (Kaizen). Every report is logged and tracked.') }}

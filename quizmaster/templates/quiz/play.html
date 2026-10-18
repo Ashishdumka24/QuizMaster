@@ -1,5 +1,5 @@
 {% extends "layouts/base.html" %}
-{% from "macros/ui.html" import brand %}
+{% from "macros/ui.html" import brand with context %}
 {% block title %}{{ quiz.title }} — in progress{% endblock %}
 {% block body_class %}has-mesh player-body{% endblock %}
 {% block body %}

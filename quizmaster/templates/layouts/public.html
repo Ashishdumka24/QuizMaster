@@ -1,5 +1,5 @@
 {% extends "layouts/base.html" %}
-{% from "macros/ui.html" import brand, avatar %}
+{% from "macros/ui.html" import brand, avatar with context %}
 {% block body %}
 {% set ep = request.endpoint or '' %}
 <header class="site-header{% block header_class %}{% endblock %}">

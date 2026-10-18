@@ -1,5 +1,5 @@
 {% extends "layouts/app.html" %}
-{% from "macros/ui.html" import page_head, stat, chart, score_pill, empty %}
+{% from "macros/ui.html" import page_head, stat, chart, score_pill, empty with context %}
 {% block title %}My results{% endblock %}
 {% block content %}
 {% set s = stats %}

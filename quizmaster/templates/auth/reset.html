@@ -1,5 +1,5 @@
 {% extends "layouts/auth.html" %}
-{% from "macros/ui.html" import password_field %}
+{% from "macros/ui.html" import password_field with context %}
 {% block title %}Reset password{% endblock %}
 {% block panel %}
 {% if invalid %}

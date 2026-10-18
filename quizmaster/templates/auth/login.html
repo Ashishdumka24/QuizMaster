@@ -1,5 +1,5 @@
 {% extends "layouts/auth.html" %}
-{% from "macros/ui.html" import field, password_field, checkbox %}
+{% from "macros/ui.html" import field, password_field, checkbox with context %}
 {% set admin = portal == 'admin' %}
 {% block title %}{{ 'Administrator sign in' if admin else 'Sign in' }}{% endblock %}
 {% block art_class %}{{ 'admin' if admin }}{% endblock %}

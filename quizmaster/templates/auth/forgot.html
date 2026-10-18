@@ -1,5 +1,5 @@
 {% extends "layouts/auth.html" %}
-{% from "macros/ui.html" import field %}
+{% from "macros/ui.html" import field with context %}
 {% block title %}Forgot password{% endblock %}
 {% block panel %}
 {% if sent %}

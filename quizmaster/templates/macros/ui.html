@@ -109,15 +109,15 @@
 {% if page.pages > 1 %}
 {% set args = request.args.to_dict() %}
 {% set _ = args.pop('page', None) %}
-{% set ep_args = kwargs %}
+{% set _ = args.update(kwargs) %}
 <nav class="pagination" aria-label="Pagination">
-  <a class="page-link{% if not page.has_prev %} disabled{% endif %}" href="{{ url_for(endpoint, page=page.prev_num or 1, **ep_args, **args) }}" aria-label="Previous page"{% if not page.has_prev %} aria-disabled="true" tabindex="-1"{% endif %}>{{ icon('chevron-left') }}</a>
+  <a class="page-link{% if not page.has_prev %} disabled{% endif %}" href="{{ url_for(endpoint, page=page.prev_num or 1, **args) }}" aria-label="Previous page"{% if not page.has_prev %} aria-disabled="true" tabindex="-1"{% endif %}>{{ icon('chevron-left') }}</a>
   {% for n in page.iter_pages(2) %}
     {% if n %}
-      <a class="page-link{% if n == page.page %} active{% endif %}" href="{{ url_for(endpoint, page=n, **ep_args, **args) }}"{% if n == page.page %} aria-current="page"{% endif %}>{{ n }}</a>
+      <a class="page-link{% if n == page.page %} active{% endif %}" href="{{ url_for(endpoint, page=n, **args) }}"{% if n == page.page %} aria-current="page"{% endif %}>{{ n }}</a>
     {% else %}<span class="page-gap">…</span>{% endif %}
   {% endfor %}
-  <a class="page-link{% if not page.has_next %} disabled{% endif %}" href="{{ url_for(endpoint, page=page.next_num or page.pages, **ep_args, **args) }}" aria-label="Next page"{% if not page.has_next %} aria-disabled="true" tabindex="-1"{% endif %}>{{ icon('chevron-right') }}</a>
+  <a class="page-link{% if not page.has_next %} disabled{% endif %}" href="{{ url_for(endpoint, page=page.next_num or page.pages, **args) }}" aria-label="Next page"{% if not page.has_next %} aria-disabled="true" tabindex="-1"{% endif %}>{{ icon('chevron-right') }}</a>
 </nav>
 <p class="text-center text-xs text-muted mt-1">Showing {{ ((page.page - 1) * page.per_page) + 1 }}–{{ [page.page * page.per_page, page.total] | min }} of {{ page.total }}</p>
 {% endif %}
@@ -130,7 +130,7 @@
   <h3>{{ title }}</h3>
   {% if text %}<p>{{ text }}</p>{% endif %}
   {% if action_url %}<a class="btn btn-primary" href="{{ action_url }}">{{ action_label }} {{ icon(action_icon) }}</a>{% endif %}
-  {{ caller() if caller }}
+  {% if caller is defined %}{{ caller() }}{% endif %}
 </div>
 {%- endmacro %}
 
@@ -205,7 +205,7 @@
     <h1>{{ title }}</h1>
     {% if subtitle %}<p>{{ subtitle }}</p>{% endif %}
   </div>
-  {% if caller %}<div class="actions">{{ caller() }}</div>{% endif %}
+  {% if caller is defined %}<div class="actions">{{ caller() }}</div>{% endif %}
 </header>
 {%- endmacro %}
 

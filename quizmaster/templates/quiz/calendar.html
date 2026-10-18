@@ -1,5 +1,5 @@
 {% extends "layouts/app.html" %}
-{% from "macros/ui.html" import page_head %}
+{% from "macros/ui.html" import page_head with context %}
 {% block title %}Quiz calendar{% endblock %}
 {% block content %}
 {% call page_head('Quiz calendar', 'When scheduled quizzes open and close (times in IST).') %}

@@ -1,5 +1,5 @@
 {% extends "layouts/app.html" if current_user.is_authenticated and current_user.is_verified else "layouts/public.html" %}
-{% from "macros/ui.html" import quiz_card, pagination, empty, page_head %}
+{% from "macros/ui.html" import quiz_card, pagination, empty, page_head with context %}
 {% block title %}Explore quizzes{% endblock %}
 {% block content %}
 {% set in_app = current_user.is_authenticated and current_user.is_verified %}

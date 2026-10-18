@@ -1,5 +1,5 @@
 {% extends "layouts/app.html" %}
-{% from "macros/ui.html" import stat, chart, score_pill, status_badge, quiz_card, empty %}
+{% from "macros/ui.html" import stat, chart, score_pill, status_badge, quiz_card, empty with context %}
 {% block title %}Dashboard{% endblock %}
 {% block content %}
 {% set s = stats %}

@@ -101,7 +101,7 @@ def api_notifications_read():
     if request.is_json:
         return json_ok({"marked": count})
     flash("Notifications marked as read.", "success")
-    return redirect(request.referrer or url_for("student.notifications"))
+    return redirect(url_for("student.notifications"))
 
 
 @bp.route("/notifications/clear", methods=["POST"])
