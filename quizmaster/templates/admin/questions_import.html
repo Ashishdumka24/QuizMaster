@@ -1,0 +1,52 @@
+{% extends "layouts/app.html" %}
+{% from "macros/ui.html" import page_head with context %}
+{% block title %}Import questions{% endblock %}
+{% block content %}
+{{ page_head('Import questions', 'Bulk-add questions from CSV or JSON. Every row is validated before anything is saved.', [('Question bank', url_for('admin.questions')), ('Import', None)]) }}
+<div class="grid-main">
+  <div class="stack" style="--gap:1.25rem">
+    <form class="card card-lg" method="post" enctype="multipart/form-data">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="field"><label class="label" for="f-file">File (.csv or .json, max {{ (config.IMPORT_MAX_BYTES / 1048576) | round(1) }} MB, {{ config.IMPORT_MAX_ROWS }} rows)</label>
+        <label class="dropzone" for="f-file">{{ icon('upload', size=28) }}<span><b>Choose a file</b> or drag it here</span><span class="text-xs text-muted" id="f-file-name">No file selected</span>
+          <input id="f-file" name="file" type="file" accept=".csv,.json,text/csv,application/json" required data-max-bytes="{{ config.IMPORT_MAX_BYTES }}" data-filename-target="f-file-name" class="sr-only"></label></div>
+      <div class="field"><label class="label" for="f-quiz">Also add imported questions to a quiz (optional)</label>
+        <select class="select" id="f-quiz" name="quiz_id"><option value="">— Question bank only —</option>{% for q in quizzes %}<option value="{{ q.id }}"{{ ' selected' if request.form.get('quiz_id') == q.id | string }}>{{ q.title }} ({{ q.status }})</option>{% endfor %}</select></div>
+      <label class="check"><input type="checkbox" name="skip_invalid" value="1"{{ ' checked' if request.form.get('skip_invalid') }}><span>Skip invalid rows and import the rest<br><small class="text-muted">Unticked = all-or-nothing: any error cancels the whole import.</small></span></label>
+      <div class="row mt-2"><button class="btn btn-primary" type="submit">{{ icon('upload') }} Validate &amp; import</button><a class="btn btn-ghost" href="{{ url_for('admin.questions_template') }}">{{ icon('download') }} Download CSV template</a></div>
+    </form>
+
+    {% if report %}
+    <section class="card card-lg" aria-live="polite">
+      <h2 style="margin-top:0;font-size:1.15rem">Import report</h2>
+      <div class="grid grid-4">
+        <div class="mini"><b>{{ report.total }}</b><span>Rows read</span></div>
+        <div class="mini"><b class="ok">{{ report.created }}</b><span>Created</span></div>
+        <div class="mini"><b class="bad">{{ report.errors | length }}</b><span>Invalid</span></div>
+        <div class="mini"><b>{{ report.duplicates | length }}</b><span>Duplicates skipped</span></div>
+      </div>
+      {% if report.aborted %}<div class="alert alert-error mt-2">{{ icon('x-circle') }}<div>Nothing was saved. Fix the rows below, or tick “Skip invalid rows”.</div></div>{% endif %}
+      {% if report.errors %}<h3 class="mt-2" style="font-size:1rem">Errors</h3>
+        <div class="table-wrap"><table class="table table-compact"><thead><tr><th>Row</th><th>Problems</th></tr></thead><tbody>{% for e in report.errors %}<tr><td>{{ e.row }}</td><td>{{ e.messages | join('; ') }}</td></tr>{% endfor %}</tbody></table></div>{% endif %}
+      {% if report.duplicates %}<h3 class="mt-2" style="font-size:1rem">Duplicates (already in the bank)</h3>
+        <ul class="list-plain text-sm">{% for d in report.duplicates %}<li>Row {{ d.row }}: {{ d.text }}</li>{% endfor %}</ul>{% endif %}
+      {% if report.created %}<a class="btn btn-soft mt-2" href="{{ url_for('admin.questions') }}">View question bank {{ icon('arrow-right') }}</a>{% endif %}
+    </section>
+    {% endif %}
+  </div>
+  <aside class="card">
+    <h2 style="margin-top:0;font-size:1.05rem">{{ icon('info') }} Format</h2>
+    <p class="text-sm">CSV columns (header row required):</p>
+    <p class="text-xs"><code style="word-break:break-word">{{ columns | join(', ') }}</code></p>
+    <ul class="list-plain text-sm" style="color:var(--ink-2)">
+      <li><b>type</b>: single, multiple, truefalse, short, fill</li>
+      <li><b>correct</b>: option letters (<code>A</code> or <code>A;C</code>), <code>true</code>/<code>false</code>, or accepted answers separated by <code>|</code></li>
+      <li><b>category</b>: the name of an existing category (unknown names are reported as errors)</li>
+      <li><b>tags</b>: comma-separated inside one quoted cell, e.g. <code>"python, loops"</code></li>
+      <li>Row numbers in the report match spreadsheet rows (row 1 = header).</li>
+    </ul>
+    <p class="text-sm">JSON: a list of objects with the same keys.</p>
+    <p class="text-xs text-muted" style="margin:0">Poka-yoke: rows are validated with the same rules as the question editor, and near-duplicates are detected before saving.</p>
+  </aside>
+</div>
+{% endblock %}

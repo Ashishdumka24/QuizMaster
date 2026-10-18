@@ -633,4 +633,21 @@
 (function () {
   var r = document.getElementById("font-scale"), o = document.getElementById("fs-out");
   if (r && o) r.addEventListener("input", function () { o.textContent = r.value + "%"; document.documentElement.style.setProperty("--font-scale", String(r.value / 100)); });
+
+  /* File inputs: show the chosen file name (import dropzone). */
+  $$("input[type=file][data-filename-target]").forEach(function (inp) {
+    var out = document.getElementById(inp.getAttribute("data-filename-target"));
+    var zone = inp.closest(".dropzone");
+    inp.addEventListener("change", function () {
+      if (out) out.textContent = inp.files && inp.files[0] ? inp.files[0].name + " (" + Math.ceil(inp.files[0].size / 1024) + " KB)" : "No file selected";
+    });
+    if (zone) {
+      ["dragenter", "dragover"].forEach(function (ev) { zone.addEventListener(ev, function (e) { e.preventDefault(); zone.classList.add("drag"); }); });
+      ["dragleave", "drop"].forEach(function (ev) { zone.addEventListener(ev, function () { zone.classList.remove("drag"); }); });
+      zone.addEventListener("drop", function (e) {
+        e.preventDefault();
+        if (e.dataTransfer && e.dataTransfer.files.length) { inp.files = e.dataTransfer.files; inp.dispatchEvent(new Event("change", { bubbles: true })); }
+      });
+    }
+  });
 })();

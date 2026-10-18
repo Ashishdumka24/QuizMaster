@@ -586,8 +586,11 @@ def quiz_analysis(quiz_id):
     summary = {"n": len(attempts), "avg": round(sum(pcts) / len(pcts), 1) if pcts else None,
                "pass_rate": round(sum(1 for a in attempts if a.passed) / len(attempts) * 100, 1) if attempts else None,
                "avg_time": round(sum(a.time_taken_seconds or 0 for a in attempts) / len(attempts)) if attempts else None}
+    bins = [0] * 10
+    for p in pcts:
+        bins[min(9, int(p // 10))] += 1
     return render_template("admin/quiz_analysis.html", quiz=quiz, items=quiz_item_analysis(quiz.id), summary=summary,
-                           scores=pcts)
+                           bins=bins)
 
 
 # ---------------------------------------------------------------------------

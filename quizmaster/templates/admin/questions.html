@@ -1,0 +1,50 @@
+{% extends "layouts/app.html" %}
+{% from "macros/ui.html" import page_head, pagination, difficulty_badge, empty with context %}
+{% block title %}Question bank{% endblock %}
+{% block content %}
+{% call page_head('Question bank', 'Reusable questions for every quiz. Archive instead of deleting to keep history intact.') %}
+  <a class="btn btn-ghost" href="{{ url_for('admin.questions_import') }}">{{ icon('upload') }} Import CSV / JSON</a>
+  <a class="btn btn-primary" href="{{ url_for('admin.question_new') }}">{{ icon('plus') }} New question</a>
+{% endcall %}
+<div class="tabs mb-2" role="tablist">
+  <a class="tab{{ ' active' if state != 'archived' }}" href="{{ url_for('admin.questions') }}">Active</a>
+  <a class="tab{{ ' active' if state == 'archived' }}" href="{{ url_for('admin.questions', state='archived') }}">Archived</a>
+</div>
+<form class="filters" method="get" role="search">
+  {% if state == 'archived' %}<input type="hidden" name="state" value="archived">{% endif %}
+  <div class="grow">{{ icon('search') }}<label class="sr-only" for="qb-q">Search</label><input class="input" id="qb-q" type="search" name="q" value="{{ search }}" placeholder="Text, topic or tag…"></div>
+  <label class="sr-only" for="qb-t">Type</label><select class="select" id="qb-t" name="type" data-autosubmit><option value="">All types</option>{% for k, l in QUESTION_TYPES.items() %}<option value="{{ k }}"{{ ' selected' if qtype == k }}>{{ l }}</option>{% endfor %}</select>
+  <label class="sr-only" for="qb-d">Difficulty</label><select class="select" id="qb-d" name="difficulty" data-autosubmit><option value="">Any difficulty</option>{% for d in difficulties %}<option value="{{ d }}"{{ ' selected' if difficulty == d }}>{{ d | capitalize }}</option>{% endfor %}</select>
+  <label class="sr-only" for="qb-c">Category</label><select class="select" id="qb-c" name="category" data-autosubmit><option value="">All categories</option>{% for c in categories %}<option value="{{ c.id }}"{{ ' selected' if cat == c.id }}>{{ c.name }}</option>{% endfor %}</select>
+  <button class="btn btn-soft" type="submit">Apply</button>
+  {% if search or qtype or difficulty or cat %}<a class="btn btn-ghost" href="{{ url_for('admin.questions', state=state if state == 'archived' else None) }}">{{ icon('x') }} Clear</a>{% endif %}
+</form>
+<p class="text-sm text-muted">{{ page.total }} question{{ 's' if page.total != 1 }}</p>
+{% if page.items %}
+<div class="card card-flush"><div class="table-wrap"><table class="table table-stack">
+  <thead><tr><th style="width:46%">Question</th><th>Type</th><th>Difficulty</th><th>Marks</th><th>Used in</th><th>Updated</th><th class="text-right">Actions</th></tr></thead>
+  <tbody>{% for q in page.items %}<tr>
+    <td data-label="Question"><a href="{{ url_for('admin.question_edit', question_id=q.id) }}" class="clamp-2 fw-600" style="color:var(--ink)">{{ q.text }}</a>
+      <div class="text-xs text-muted">{{ q.category.name if q.category else 'Uncategorised' }}{% if q.topic %} · {{ q.topic }}{% endif %}{% if q.image_filename %} · {{ icon('image') }} image{% endif %}</div></td>
+    <td data-label="Type"><span class="badge badge-outline">{{ q.type_label }}</span></td>
+    <td data-label="Difficulty">{{ difficulty_badge(q.difficulty) }}</td>
+    <td data-label="Marks">{{ '%g' | format(q.marks) }}{% if q.negative_marks %} <span class="text-xs bad">−{{ '%g' | format(q.negative_marks) }}</span>{% endif %}</td>
+    <td data-label="Used in">{{ usage.get(q.id, 0) }} quiz{{ 'zes' if usage.get(q.id, 0) != 1 }}</td>
+    <td data-label="Updated" class="text-xs">{{ q.updated_at | ago }}</td>
+    <td class="text-right"><div class="row" style="justify-content:flex-end;gap:.3rem;flex-wrap:nowrap">
+      <a class="btn btn-soft btn-xs" href="{{ url_for('admin.question_edit', question_id=q.id) }}">{{ icon('edit') }} Edit</a>
+      {% if q.is_archived %}
+      <form method="post" action="{{ url_for('admin.question_action', question_id=q.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="action" value="restore"><button class="btn btn-ghost btn-xs" type="submit">{{ icon('refresh') }} Restore</button></form>
+      {% else %}
+      <form method="post" action="{{ url_for('admin.question_action', question_id=q.id) }}" data-confirm="Archive this question? It will be skipped in quizzes but kept for history." data-confirm-ok="Archive" data-confirm-danger="false"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="action" value="archive"><button class="btn btn-ghost btn-xs" type="submit" title="Archive" aria-label="Archive">{{ icon('archive') }}</button></form>
+      {% endif %}
+      {% if not usage.get(q.id) %}
+      <form method="post" action="{{ url_for('admin.question_action', question_id=q.id) }}" data-confirm="Delete this question permanently?" data-confirm-ok="Delete"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="action" value="delete"><button class="btn btn-danger-soft btn-xs" type="submit" title="Delete" aria-label="Delete">{{ icon('trash') }}</button></form>
+      {% endif %}
+    </div></td>
+  </tr>{% endfor %}</tbody></table></div></div>
+{{ pagination(page, 'admin.questions') }}
+{% else %}
+<div class="card">{% if search or qtype or difficulty or cat %}{{ empty('No questions match', 'Try different filters.', 'search', url_for('admin.questions'), 'Clear filters', 'x') }}{% elif state == 'archived' %}{{ empty('No archived questions', '', 'archive') }}{% else %}{{ empty('The question bank is empty', 'Add questions one by one or import a CSV/JSON file.', 'database', url_for('admin.question_new'), 'New question', 'plus') }}{% endif %}</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,87 @@
+{% extends "layouts/app.html" %}
+{% from "macros/ui.html" import page_head, field, textarea, select with context %}
+{% block title %}{{ 'New question' if is_new else 'Edit question' }}{% endblock %}
+{% block content %}
+{% set crumbs = [('Quizzes', url_for('admin.quizzes')), (quiz.title, url_for('admin.quiz_questions', quiz_id=quiz.id))] if quiz else [('Question bank', url_for('admin.questions'))] %}
+{{ page_head('New question' if is_new else 'Edit question', ('Will be added to “' ~ quiz.title ~ '”.') if quiz and is_new else None, crumbs + [('New' if is_new else 'Edit', None)]) }}
+{% if not is_new and usage %}<div class="alert alert-info">{{ icon('info') }}<div>Used in {{ usage }} quiz{{ 'zes' if usage != 1 }}. Changes apply to <b>future</b> attempts only — recorded attempts keep the version students saw.</div></div>{% endif %}
+{% if errors.duplicate %}<div class="alert alert-warning">{{ icon('alert') }}<div>{{ errors.duplicate }}</div></div>{% endif %}
+<form method="post" enctype="multipart/form-data" novalidate data-question-form data-dirty-guard>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  {% if quiz %}<input type="hidden" name="quiz_id" value="{{ quiz.id }}">{% endif %}
+  <div class="grid-main">
+    <div class="stack" style="--gap:1.25rem">
+      <section class="card card-lg">
+        {{ select('qtype', 'Question type', QUESTION_TYPES.items() | list, form.qtype, errors=errors, attrs='data-qtype') }}
+        {{ textarea('text', 'Question text', form.text, errors=errors, required=True, rows=4, maxlength=2000, attrs='data-similar="' ~ url_for('admin.api_similar') ~ '" data-exclude="' ~ (question.id or '') ~ '" data-counter') }}
+        <div data-similar-results hidden aria-live="polite"></div>
+        {% if dups %}<div class="alert alert-warning">{{ icon('alert') }}<div><b>Similar questions</b><ul style="margin:.3rem 0 0;padding-left:1.1rem">{% for d in dups %}<li><a href="{{ url_for('admin.question_edit', question_id=d.id) }}">{{ d.text }}</a> <span class="badge badge-warn">{{ d.similarity }}%</span></li>{% endfor %}</ul></div></div>{% endif %}
+        <p class="text-xs text-muted">For fill-in-the-blank, write the blank as <code>____</code> (underscores), e.g. “The capital of Karnataka is ____.”</p>
+      </section>
+
+      <section class="card card-lg" data-for-types="single multiple">
+        <div class="row-between"><h2 class="form-section" style="margin:0">{{ icon('list-checks') }} Options</h2><button class="btn btn-soft btn-sm" type="button" data-add-option>{{ icon('plus') }} Add option</button></div>
+        <p class="hint" data-correct-hint>Tick exactly one correct option.</p>
+        {% if errors.options %}<p class="error-text">{{ icon('alert') }} {{ errors.options }}</p>{% endif %}
+        <div data-options class="stack" style="--gap:.5rem">
+          {% for o in form.options %}
+          <div class="option-row"><span class="opt-key">{{ 'ABCDEFGH'[loop.index0] }}</span>
+            <input class="input" type="text" name="option_text" value="{{ o.text }}" maxlength="500" aria-label="Option {{ 'ABCDEFGH'[loop.index0] }}">
+            <label class="check" title="Correct answer"><input type="checkbox" name="option_correct" value="{{ loop.index0 }}"{{ ' checked' if o.is_correct }}><span class="text-xs">Correct</span></label>
+            <button class="btn btn-ghost btn-xs btn-icon" type="button" data-remove-option aria-label="Remove option">{{ icon('x') }}</button></div>
+          {% endfor %}
+        </div>
+        <template data-option-template><div class="option-row"><span class="opt-key"></span><input class="input" type="text" name="option_text" maxlength="500"><label class="check" title="Correct answer"><input type="checkbox" name="option_correct" value=""><span class="text-xs">Correct</span></label><button class="btn btn-ghost btn-xs btn-icon" type="button" data-remove-option aria-label="Remove option">{{ icon('x') }}</button></div></template>
+      </section>
+
+      <section class="card card-lg" data-for-types="truefalse">
+        <h2 class="form-section">{{ icon('check-circle') }} Correct answer</h2>
+        <div class="segmented" role="radiogroup" aria-label="Correct answer">
+          <label><input type="radio" name="tf_answer" value="true"{{ ' checked' if form.tf_answer == 'true' }}><span>True</span></label>
+          <label><input type="radio" name="tf_answer" value="false"{{ ' checked' if form.tf_answer == 'false' }}><span>False</span></label>
+        </div>
+        {% if errors.options and form.qtype == "truefalse" %}<p class="error-text">{{ errors.options }}</p>{% endif %}
+      </section>
+
+      <section class="card card-lg" data-for-types="short fill">
+        {{ textarea('accepted', 'Accepted answers (one per line)', form.accepted, errors=errors, rows=3, hint='Matching ignores case, extra spaces and trailing punctuation. Add common spelling variants on separate lines.') }}
+      </section>
+
+      <section class="card card-lg">
+        {{ textarea('explanation', 'Explanation (shown after results are released)', form.explanation, rows=3, maxlength=2000) }}
+      </section>
+    </div>
+
+    <aside class="stack" style="--gap:1.25rem">
+      <section class="card card-lg">
+        <h2 class="form-section">{{ icon('sliders') }} Details</h2>
+        <div class="field"><label class="label" for="f-category_id">Category</label>
+          <select class="select" id="f-category_id" name="category_id"><option value="">— None —</option>{% for c in categories %}<option value="{{ c.id }}"{{ ' selected' if (form.category_id | string) == (c.id | string) }}>{{ c.name }}</option>{% endfor %}</select>
+          {% if errors.category_id %}<p class="error-text">{{ errors.category_id }}</p>{% endif %}</div>
+        {{ select('difficulty', 'Difficulty', [('easy', 'Easy'), ('medium', 'Medium'), ('hard', 'Hard')], form.difficulty) }}
+        <div class="form-grid">
+          {{ field('marks', 'Marks', form.marks, 'number', errors=errors, min='0.25', max=100, step='0.25', required=True) }}
+          {{ field('negative_marks', 'Negative marks', form.negative_marks, 'number', errors=errors, min=0, max=100, step='0.25', hint='Used only if the quiz enables it.') }}
+        </div>
+        {{ field('topic', 'Topic', form.topic, maxlength=100) }}
+        {{ field('tags', 'Tags', form.tags, hint='Comma-separated', maxlength=330) }}
+      </section>
+      <section class="card card-lg">
+        <h2 class="form-section">{{ icon('image') }} Image (optional)</h2>
+        {% if question.image_filename %}<img class="q-image" src="{{ url_for('public.media', kind='questions', filename=question.image_filename) }}" alt="Current question image"><label class="check mt-1"><input type="checkbox" name="remove_image" value="1"><span>Remove current image</span></label>{% endif %}
+        <input class="input mt-1" type="file" id="f-image" name="image" accept="image/png,image/jpeg,image/webp,image/gif" data-max-bytes="{{ config.QUESTION_IMAGE_MAX_BYTES }}">
+        <p class="hint">PNG, JPG, WEBP or GIF up to {{ (config.QUESTION_IMAGE_MAX_BYTES / 1048576) | round(1) }} MB. Images are re-encoded on the server.</p>
+        {% if errors.image %}<p class="error-text">{{ errors.image }}</p>{% endif %}
+      </section>
+      <section class="card">
+        {% if errors.duplicate %}<label class="check mb-1"><input type="checkbox" name="confirm_duplicate" value="1"><span>Save anyway (not a duplicate)</span></label>{% endif %}
+        <div class="row">
+          <button class="btn btn-primary" type="submit">{{ icon('check') }} Save question</button>
+          {% if is_new %}<button class="btn btn-soft" type="submit" name="save_and_new" value="1">Save &amp; add another</button>{% endif %}
+          <a class="btn btn-ghost" href="{{ url_for('admin.quiz_questions', quiz_id=quiz.id) if quiz else url_for('admin.questions') }}">Cancel</a>
+        </div>
+      </section>
+    </aside>
+  </div>
+</form>
+{% endblock %}
