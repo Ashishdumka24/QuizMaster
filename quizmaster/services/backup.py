@@ -6,7 +6,7 @@ For PostgreSQL deployments use `pg_dump` (see docs/DEPLOYMENT.md).
 from __future__ import annotations
 
 import sqlite3
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from flask import current_app
@@ -61,6 +61,7 @@ def list_backups() -> list[dict]:
     for f in sorted(backup_dir().glob("quizmaster-*.db"), reverse=True):
         st = f.stat()
         out.append({"name": f.name, "size_kb": round(st.st_size / 1024, 1), "mtime": st.st_mtime,
+                    "created": datetime.fromtimestamp(st.st_mtime, timezone.utc).replace(tzinfo=None),
                     "kind": "auto" if f.stem.endswith("-auto") else "manual"})
     return out
 

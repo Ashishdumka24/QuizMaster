@@ -1,0 +1,47 @@
+{% extends "layouts/app.html" %}
+{% from "macros/ui.html" import page_head, pagination, status_badge, empty with context %}
+{% block title %}Inbox &amp; feedback{% endblock %}
+{% block content %}
+{{ page_head('Inbox & feedback', 'Support messages from the Help page and ratings from students (voice of the customer).') }}
+<div class="tabs mb-2" role="tablist">
+  <a class="tab{{ ' active' if tab != 'feedback' }}" href="{{ url_for('admin.inbox') }}">{{ icon('inbox') }} Support messages</a>
+  <a class="tab{{ ' active' if tab == 'feedback' }}" href="{{ url_for('admin.inbox', tab='feedback') }}">{{ icon('star') }} Feedback</a>
+</div>
+{% if tab == 'feedback' %}
+<div class="grid grid-3 mb-2">
+  <div class="card mini"><b>{{ fb.n }}</b><span>Ratings received</span></div>
+  <div class="card mini"><b>{{ fb.avg if fb.avg is not none else '—' }}<small>/5</small></b><span>Average rating</span></div>
+  <div class="card mini"><b>{{ (fb.csat ~ '%') if fb.csat is not none else '—' }}</b><span>CSAT (share of 4–5★)</span></div>
+</div>
+{% else %}
+<div class="row mb-2">{% for v, l in [('', 'All'), ('open', 'Open'), ('answered', 'Answered'), ('closed', 'Closed')] %}<a class="chip{{ ' active' if status == v }}" href="{{ url_for('admin.inbox', status=v or None) }}">{{ l }}</a>{% endfor %}</div>
+{% endif %}
+{% if page.items %}
+<div class="stack" style="--gap:1rem">
+{% for m in page.items %}
+<article class="card">
+  <div class="row-between">
+    {% if tab == 'feedback' %}
+      <div class="row" style="gap:.5rem"><span class="stars" aria-label="{{ m.rating }} out of 5">{% for i in range(5) %}{{ icon('star', 'on' if i < m.rating else '') }}{% endfor %}</span><span class="badge badge-outline">{{ m.area | replace('_', ' ') | capitalize }}</span>{{ status_badge(m.status) }}</div>
+    {% else %}
+      <div style="min-width:0"><b>{{ m.subject }}</b><div class="text-xs text-muted">{{ m.name }} · <a href="mailto:{{ m.email }}?subject=Re: {{ m.subject | urlencode }}">{{ m.email }}</a>{% if m.user_id %} · registered user{% endif %}</div></div>
+      {{ status_badge(m.status) }}
+    {% endif %}
+  </div>
+  {% if tab == 'feedback' %}<div class="text-xs text-muted mt-1">{{ m.user.full_name if m.user else 'Deleted user' }} · {{ m.created_at | dt }}</div>{% else %}<div class="text-xs text-muted mt-1">{{ m.created_at | dt }}</div>{% endif %}
+  {% if m.message %}<p class="text-sm" style="white-space:pre-line;color:var(--ink-2)">{{ m.message }}</p>{% endif %}
+  <form class="row" method="post" action="{{ url_for('admin.inbox_update', kind='feedback' if tab == 'feedback' else 'support', item_id=m.id) }}" style="align-items:flex-end">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="field" style="margin:0"><label class="label" for="st{{ m.id }}">Status</label><select class="select" id="st{{ m.id }}" name="status">{% for s in (['new', 'reviewed', 'actioned'] if tab == 'feedback' else ['open', 'answered', 'closed']) %}<option value="{{ s }}"{{ ' selected' if m.status == s }}>{{ s | capitalize }}</option>{% endfor %}</select></div>
+    <div class="field" style="margin:0;flex:1;min-width:220px"><label class="label" for="nt{{ m.id }}">Internal note</label><input class="input" id="nt{{ m.id }}" name="admin_note" maxlength="1000" value="{{ m.admin_note or '' }}" placeholder="Action taken, follow-up…"></div>
+    <button class="btn btn-soft btn-sm" type="submit">Save</button>
+    {% if tab != 'feedback' %}<a class="btn btn-ghost btn-sm" href="mailto:{{ m.email }}?subject=Re: {{ m.subject | urlencode }}">{{ icon('mail') }} Reply by email</a>{% endif %}
+  </form>
+</article>
+{% endfor %}
+</div>
+{{ pagination(page, 'admin.inbox') }}
+{% else %}
+<div class="card">{{ empty('Nothing here yet', 'Support messages and feedback appear here when users submit them.', 'inbox') }}</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,41 @@
+{% extends "layouts/app.html" %}
+{% from "macros/ui.html" import page_head, stat, chart, score_pill, empty with context %}
+{% block title %}Analytics{% endblock %}
+{% block content %}
+{% set qs = args.to_dict() %}
+{% call page_head('Analytics & reports', 'Performance across quizzes for a chosen date range (IST).') %}
+  <div class="dropdown" data-dropdown><button class="btn btn-primary" type="button" aria-haspopup="true" aria-expanded="false">{{ icon('download') }} Download report</button>
+    <div class="dropdown-menu dropdown-right" role="menu">{% for f, l in [('pdf', 'PDF report'), ('xlsx', 'Excel (.xlsx)'), ('csv', 'CSV')] %}<a class="dropdown-item" role="menuitem" href="{{ url_for('admin.analytics', format=f, to=qs.get('to') or None, **{'from': qs.get('from') or None}) }}">{{ l }}</a>{% endfor %}</div></div>
+{% endcall %}
+<form class="filters" method="get">
+  <label class="text-sm" for="a-from">From</label><input class="input" style="width:auto" type="date" id="a-from" name="from" value="{{ qs.get('from', '') }}">
+  <label class="text-sm" for="a-to">To</label><input class="input" style="width:auto" type="date" id="a-to" name="to" value="{{ qs.get('to', '') }}">
+  <button class="btn btn-soft" type="submit">{{ icon('filter') }} Apply</button>
+  {% if qs %}<a class="btn btn-ghost" href="{{ url_for('admin.analytics') }}">All time</a>{% endif %}
+</form>
+<div class="grid grid-4">
+  {{ stat('Finished attempts', summary.n, 'check-circle', 'indigo') }}
+  {{ stat('Students participating', summary.students, 'users', 'purple') }}
+  {{ stat('Average score', summary.avg if summary.avg is not none else '—', 'target', 'teal', suffix='%' if summary.avg is not none else '') }}
+  {{ stat('Pass rate', summary.pass_rate if summary.pass_rate is not none else '—', 'award', 'coral', suffix='%' if summary.pass_rate is not none else '') }}
+</div>
+<div class="grid-main mt-3">
+  <section class="card"><div class="card-head"><h2>Attempts per day</h2></div>
+    {{ chart('line', day_series | map(attribute='label'), day_series | map(attribute='value'), 'Finished attempts per day', 240, empty_text='No finished attempts in this range.') }}</section>
+  <section class="card"><div class="card-head"><h2>Score distribution</h2></div>
+    {{ chart('bar', histogram | map(attribute='label'), histogram | map(attribute='value'), 'Attempts per score band', 240, empty_text='No graded attempts in this range.') }}</section>
+</div>
+<div class="grid grid-2 mt-3">
+  <section class="card"><div class="card-head"><h2>Question types in bank</h2></div>
+    {% set qt = overview.qtypes %}
+    {{ chart('donut', qt.keys() | map('replace', 'truefalse', 'true/false') | list, qt.values() | list, 'Active questions by type', 220, center=overview.questions_active, center_label='questions') }}</section>
+  <section class="card"><div class="card-head"><h2>Difficulty mix</h2></div>
+    {% set qd = overview.qdiff %}
+    {{ chart('donut', qd.keys() | map('capitalize') | list, qd.values() | list, 'Active questions by difficulty', 220) }}</section>
+</div>
+<section class="card card-flush mt-3"><div class="card-head" style="padding:1.1rem 1.2rem 0"><h2>Per-quiz performance</h2></div>
+  {% if quiz_rows %}<div class="table-wrap"><table class="table table-stack"><thead><tr><th>Quiz</th><th>Attempts</th><th>Average</th><th>Pass rate</th><th>Avg time</th></tr></thead><tbody>
+  {% for r in quiz_rows %}<tr><td data-label="Quiz">{{ r.title }}</td><td data-label="Attempts">{{ r.attempts }}</td><td data-label="Average">{{ score_pill(r.avg) }}</td><td data-label="Pass rate">{{ r.pass_rate }}%</td><td data-label="Avg time">{{ r.avg_time | duration }}</td></tr>{% endfor %}
+  </tbody></table></div>{% else %}<div style="padding:1rem">{{ empty('No data for this range', 'Pick a wider range or wait for students to finish quizzes.', 'bar-chart') }}</div>{% endif %}
+</section>
+{% endblock %}

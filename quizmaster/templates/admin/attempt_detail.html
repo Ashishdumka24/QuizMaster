@@ -1,0 +1,43 @@
+{% extends "layouts/app.html" %}
+{% from "macros/ui.html" import page_head, status_badge, score_pill, avatar with context %}
+{% block title %}Attempt #{{ attempt.id }}{% endblock %}
+{% block content %}
+{% call page_head('Attempt #' ~ attempt.id, attempt.quiz.title ~ ' · ' ~ attempt.user.full_name, [('Results', url_for('admin.results')), ('Attempt #' ~ attempt.id, None)]) %}
+  {% if attempt.is_finished %}<a class="btn btn-ghost" href="{{ url_for('quiz.result', attempt_id=attempt.id) }}">{{ icon('eye') }} Student view</a>{% endif %}
+  <button type="button" class="btn btn-ghost" data-print>{{ icon('printer') }} Print</button>
+{% endcall %}
+<div class="grid grid-4">
+  <div class="card stat"><span class="stat-icon indigo">{{ icon('user') }}</span><div style="min-width:0"><div class="stat-label">Student</div><a class="fw-600 truncate" style="display:block" href="{{ url_for('admin.user_detail', user_id=attempt.user_id) }}">{{ attempt.user.full_name }}</a><div class="stat-foot truncate">{{ attempt.user.email }}</div></div></div>
+  <div class="card stat"><span class="stat-icon purple">{{ icon('target') }}</span><div><div class="stat-label">Score</div><div class="stat-value">{% if attempt.is_finished %}{{ '%g' | format(attempt.score or 0) }}<small>/{{ '%g' | format(attempt.max_score) }}</small>{% else %}—{% endif %}</div><div class="stat-foot">{% if attempt.is_finished %}{{ score_pill(attempt.percentage) }} · {{ 'Passed' if attempt.passed else 'Not passed' }} (pass {{ '%g' | format(attempt.pass_percentage) }}%){% endif %}</div></div></div>
+  <div class="card stat"><span class="stat-icon teal">{{ icon('clock') }}</span><div><div class="stat-label">Timing</div><div class="stat-value" style="font-size:1.3rem">{{ attempt.time_taken_seconds | duration }}</div><div class="stat-foot">Started {{ attempt.started_at | dt }}</div></div></div>
+  <div class="card stat"><span class="stat-icon coral">{{ icon('zap') }}</span><div><div class="stat-label">Status</div><div>{{ status_badge(attempt.status) }}{% if attempt.auto_submitted %} <span class="badge badge-outline">auto</span>{% endif %}</div><div class="stat-foot">{% if attempt.submit_latency_ms is not none %}Submit {{ '%.1f' | format(attempt.submit_latency_ms) }} ms · {% endif %}{% if attempt.grading_ms is not none %}grade {{ '%.1f' | format(attempt.grading_ms) }} ms · {% endif %}results {{ 'released' if released else 'not released' }}</div></div></div>
+</div>
+{% if not attempt.is_finished %}
+<div class="alert alert-info mt-3">{{ icon('clock') }}<div>This attempt is still in progress (deadline {{ attempt.deadline_at | dt }}). The answer review appears after submission.</div></div>
+{% else %}
+<div class="callout mt-3">{{ icon('info') }} Adjust marks when a question was ambiguous or the key was wrong. Every change needs a note, is written to the audit log, re-totals the attempt and notifies the student. Snapshots are never modified.</div>
+<section class="mt-2">
+{% for r in rows %}{% set q = r.q %}
+{% set state = 'unanswered' if not r.answered else ('correct' if r.is_correct else 'incorrect') %}
+<article class="card review-item {{ state }} mb-2" id="q{{ q.id }}">
+  <div class="q-meta"><span class="q-num">Question {{ r.n }} · {{ QUESTION_TYPES.get(q.type, q.type) }}</span>
+    <span class="row" style="gap:.35rem">{% if state == 'correct' %}<span class="badge badge-ok">Correct</span>{% elif state == 'incorrect' %}<span class="badge badge-bad">Incorrect</span>{% else %}<span class="badge badge-outline">Not answered</span>{% endif %}
+      <span class="badge badge-accent">{{ '%g' | format(r.marks) }} / {{ '%g' | format(q.marks) }}</span>{% if r.override %}<span class="badge badge-info" title="{{ r.note }}">Overridden</span>{% endif %}</span></div>
+  <h3 style="font-size:1rem;white-space:pre-line">{{ q.text }}</h3>
+  {% if q.options %}{% for o in q.options %}{% set picked = o.id in r.selected %}{% set right = o.id in r.correct_ids %}
+    <div class="review-opt{{ ' is-correct' if right }}{{ ' is-wrong' if picked and not right }}"><span>{{ o.text }}</span>{% if picked %}<span class="badge badge-outline" style="margin-left:auto">Chosen</span>{% endif %}{% if right %}{{ icon('check-circle') }}{% endif %}</div>{% endfor %}
+  {% else %}<p class="text-sm" style="margin:.3rem 0">Answer: <b>{{ r.text_answer or '—' }}</b></p><p class="text-sm ok" style="margin:.3rem 0">Accepted: {{ r.accepted | join(' · ') }}</p>{% endif %}
+  {% if r.note %}<p class="text-xs text-muted">Override note: {{ r.note }}</p>{% endif %}
+  <details class="mt-1"><summary class="btn btn-ghost btn-xs">{{ icon('edit') }} Adjust marks</summary>
+    <form class="row mt-1" method="post" action="{{ url_for('admin.attempt_override', attempt_id=attempt.id) }}" style="align-items:flex-end" data-confirm="Change the marks for question {{ r.n }}? The student will be notified." data-confirm-ok="Save" data-confirm-danger="false">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="question_id" value="{{ q.id }}">
+      <div class="field" style="margin:0"><label class="label" for="m{{ q.id }}">Marks (−{{ '%g' | format(q.marks) }} to {{ '%g' | format(q.marks) }})</label><input class="input" id="m{{ q.id }}" type="number" name="marks" step="0.25" min="-{{ q.marks }}" max="{{ q.marks }}" value="{{ '%g' | format(r.marks) }}" required style="width:130px"></div>
+      <div class="field" style="margin:0"><label class="label" for="c{{ q.id }}">Count as</label><select class="select" id="c{{ q.id }}" name="correct"><option value="1"{{ ' selected' if r.is_correct }}>Correct</option><option value="0"{{ ' selected' if not r.is_correct }}>Incorrect</option></select></div>
+      <div class="field grow" style="margin:0;flex:1;min-width:200px"><label class="label" for="n{{ q.id }}">Justification (required)</label><input class="input" id="n{{ q.id }}" name="note" minlength="3" maxlength="300" required placeholder="e.g. Ambiguous wording — accepted both answers"></div>
+      <button class="btn btn-primary btn-sm" type="submit">Save</button>
+    </form></details>
+</article>
+{% endfor %}
+</section>
+{% endif %}
+{% endblock %}

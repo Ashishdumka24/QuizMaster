@@ -396,7 +396,7 @@ def quiz_new():
             cache.clear("admin:")
             flash("Quiz created as a draft. Now add questions.", "success")
             return redirect(url_for("admin.quiz_questions", quiz_id=quiz.id))
-    return render_template("admin/quiz_form.html", quiz=quiz, errors=errors,
+    return render_template("admin/quiz_form.html", quiz=quiz, errors=errors, problems=[],
                            categories=Category.query.order_by(Category.name).all())
 
 

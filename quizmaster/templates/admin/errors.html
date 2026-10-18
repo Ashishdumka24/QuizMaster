@@ -1,0 +1,29 @@
+{% extends "layouts/app.html" %}
+{% from "macros/ui.html" import page_head, pagination, empty with context %}
+{% block title %}Error log{% endblock %}
+{% block content %}
+{{ page_head('Error log', 'Unhandled server errors captured automatically. Convert recurring ones into tracked defects.') }}
+<div class="tabs mb-2" role="tablist">
+  <a class="tab{{ ' active' if show == 'open' }}" href="{{ url_for('admin.errors') }}">Unresolved</a>
+  <a class="tab{{ ' active' if show != 'open' }}" href="{{ url_for('admin.errors', show='all') }}">All</a>
+</div>
+{% if page.items %}
+<div class="stack" style="--gap:1rem">
+{% for e in page.items %}
+<article class="card">
+  <div class="row-between"><div style="min-width:0"><b>{{ e.error_type }}</b> <span class="badge badge-outline">{{ e.method }} {{ e.status_code }}</span>{% if e.resolved %} <span class="badge badge-ok">Resolved</span>{% endif %}
+    <div class="text-xs text-muted"><code>{{ e.path }}</code> · {{ e.created_at | dt }}{% if e.user_id %} · user #{{ e.user_id }}{% endif %}</div></div>
+    {% if not e.resolved %}<div class="row">
+      <form method="post" action="{{ url_for('admin.error_action', err_id=e.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="action" value="to_defect"><button class="btn btn-soft btn-xs" type="submit">{{ icon('bug') }} Log as defect</button></form>
+      <form method="post" action="{{ url_for('admin.error_action', err_id=e.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="action" value="resolve"><button class="btn btn-ghost btn-xs" type="submit">{{ icon('check') }} Mark resolved</button></form>
+    </div>{% endif %}</div>
+  {% if e.message %}<p class="text-sm" style="margin:.5rem 0 0">{{ e.message }}</p>{% endif %}
+  {% if e.trace %}<details class="mt-1"><summary class="text-xs" style="cursor:pointer">Stack trace</summary><pre class="code-block">{{ e.trace }}</pre></details>{% endif %}
+</article>
+{% endfor %}
+</div>
+{{ pagination(page, 'admin.errors') }}
+{% else %}
+<div class="card">{{ empty('No errors recorded' if show != 'open' else 'No unresolved errors', 'Unhandled exceptions are logged here automatically.', 'check-circle') }}</div>
+{% endif %}
+{% endblock %}

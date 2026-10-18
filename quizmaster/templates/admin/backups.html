@@ -1,0 +1,26 @@
+{% extends "layouts/app.html" %}
+{% from "macros/ui.html" import page_head, empty with context %}
+{% block title %}Backups{% endblock %}
+{% block content %}
+{% call page_head('Database backups', 'Consistent SQLite snapshots made with the online backup API.') %}
+  <form method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-primary" type="submit">{{ icon('archive') }} Create backup now</button></form>
+{% endcall %}
+<div class="grid-main">
+  <section class="card card-flush">
+    {% if items %}<div class="table-wrap"><table class="table table-stack"><thead><tr><th>File</th><th>Type</th><th>Size</th><th>Created</th><th></th></tr></thead><tbody>
+    {% for b in items %}<tr><td data-label="File"><code class="text-xs">{{ b.name }}</code></td><td data-label="Type"><span class="badge {{ 'badge-info' if b.kind == 'auto' else 'badge-accent' }}">{{ b.kind }}</span></td><td data-label="Size">{{ b.size_kb }} KB</td><td data-label="Created" class="text-xs">{{ b.created | dt }}</td>
+      <td class="text-right"><a class="btn btn-soft btn-xs" href="{{ url_for('admin.backup_download', name=b.name) }}">{{ icon('download') }} Download</a></td></tr>{% endfor %}
+    </tbody></table></div>
+    {% else %}<div style="padding:1rem">{{ empty('No backups yet', 'Create the first backup with the button above.', 'archive') }}</div>{% endif %}
+  </section>
+  <aside class="card">
+    <h2 style="margin-top:0;font-size:1.05rem">{{ icon('info') }} About backups</h2>
+    <ul class="list-divided text-sm">
+      <li class="row-between"><span class="text-muted">Automatic backups</span>{% if auto_enabled %}<span class="badge badge-ok">every {{ hours }} h</span>{% else %}<span class="badge badge-outline">off</span>{% endif %}</li>
+      <li class="row-between"><span class="text-muted">Last automatic</span><span class="text-xs">{{ last_auto or 'never' }}</span></li>
+    </ul>
+    <p class="text-sm" style="color:var(--ink-2)">Files are stored in <code>instance/backups</code> and the oldest are pruned automatically. To restore: stop the app, replace <code>instance/quizmaster.db</code> with a backup file, start the app (see <code>docs/DEPLOYMENT.md</code>).</p>
+    <p class="text-xs text-muted" style="margin:0">Backups contain personal data and password hashes — store downloads securely.</p>
+  </aside>
+</div>
+{% endblock %}

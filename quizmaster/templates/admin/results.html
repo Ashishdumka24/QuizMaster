@@ -1,0 +1,36 @@
+{% extends "layouts/app.html" %}
+{% from "macros/ui.html" import page_head, pagination, status_badge, score_pill, avatar, empty with context %}
+{% block title %}Results{% endblock %}
+{% block content %}
+{% call page_head('Results', 'Every attempt, with filters and exports.') %}
+  <div class="dropdown" data-dropdown><button class="btn btn-primary" type="button" aria-haspopup="true" aria-expanded="false">{{ icon('download') }} Export filtered</button>
+    <div class="dropdown-menu dropdown-right" role="menu">{% for f, l in [('csv', 'CSV'), ('xlsx', 'Excel (.xlsx)'), ('pdf', 'PDF report')] %}<a class="dropdown-item" role="menuitem" href="{{ url_for('admin.results_export', format=f, **args.to_dict()) }}">{{ l }}</a>{% endfor %}</div></div>
+{% endcall %}
+<form class="filters" method="get" role="search">
+  <div class="grow">{{ icon('search') }}<label class="sr-only" for="r-q">Student</label><input class="input" id="r-q" type="search" name="q" value="{{ args.get('q', '') }}" placeholder="Student name or email…"></div>
+  <label class="sr-only" for="r-quiz">Quiz</label><select class="select" id="r-quiz" name="quiz" data-autosubmit><option value="">All quizzes</option>{% for q in quizzes %}<option value="{{ q.id }}"{{ ' selected' if args.get('quiz') == q.id | string }}>{{ q.title }}</option>{% endfor %}</select>
+  <label class="sr-only" for="r-status">Status</label><select class="select" id="r-status" name="status" data-autosubmit>{% for v, l in [('', 'Any status'), ('submitted', 'Submitted'), ('expired', 'Time expired'), ('in_progress', 'In progress'), ('passed', 'Passed'), ('failed', 'Not passed')] %}<option value="{{ v }}"{{ ' selected' if args.get('status', '') == v }}>{{ l }}</option>{% endfor %}</select>
+  <label class="text-xs text-muted" for="r-from">From</label><input class="input" style="width:auto" type="date" id="r-from" name="from" value="{{ args.get('from', '') }}">
+  <label class="text-xs text-muted" for="r-to">To</label><input class="input" style="width:auto" type="date" id="r-to" name="to" value="{{ args.get('to', '') }}">
+  <button class="btn btn-soft" type="submit">Apply</button>
+  {% if args %}<a class="btn btn-ghost" href="{{ url_for('admin.results') }}">{{ icon('x') }} Clear</a>{% endif %}
+</form>
+<p class="text-sm text-muted">{{ page.total }} attempt{{ 's' if page.total != 1 }}</p>
+{% if page.items %}
+<div class="card card-flush"><div class="table-wrap"><table class="table table-stack">
+  <thead><tr><th>Student</th><th>Quiz</th><th>#</th><th>Status</th><th>Score</th><th>Time</th><th>Submitted</th><th></th></tr></thead>
+  <tbody>{% for a in page.items %}<tr>
+    <td data-label="Student"><a class="row" style="gap:.5rem;flex-wrap:nowrap" href="{{ url_for('admin.user_detail', user_id=a.user_id) }}">{{ avatar(a.user, 'avatar-sm') }}<span style="min-width:0"><b class="truncate" style="display:block">{{ a.user.full_name }}</b><span class="text-xs text-muted">{{ a.user.email }}</span></span></a></td>
+    <td data-label="Quiz">{{ a.quiz.title }}</td>
+    <td data-label="Attempt">{{ a.attempt_number }}</td>
+    <td data-label="Status">{{ status_badge(a.status) }}{% if a.manually_adjusted %} <span class="badge badge-info" title="Manually adjusted">adj.</span>{% endif %}</td>
+    <td data-label="Score">{% if a.is_finished %}{{ score_pill(a.percentage) }} <span class="text-xs text-muted">{{ '%g' | format(a.score or 0) }}/{{ '%g' | format(a.max_score) }}</span>{% else %}—{% endif %}</td>
+    <td data-label="Time">{{ a.time_taken_seconds | duration }}</td>
+    <td data-label="Submitted" class="text-xs">{{ a.submitted_at | dt if a.submitted_at else ('Due ' ~ (a.deadline_at | dt('%I:%M %p'))) }}</td>
+    <td class="text-right"><a class="btn btn-soft btn-xs" href="{{ url_for('admin.attempt_detail', attempt_id=a.id) }}">Review</a></td>
+  </tr>{% endfor %}</tbody></table></div></div>
+{{ pagination(page, 'admin.results') }}
+{% else %}
+<div class="card">{{ empty('No attempts found', 'Attempts appear here as soon as students start quizzes.', 'award', url_for('admin.results') if args else None, 'Clear filters', 'x') }}</div>
+{% endif %}
+{% endblock %}

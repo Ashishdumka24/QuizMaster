@@ -1,0 +1,51 @@
+{% extends "layouts/app.html" %}
+{% from "macros/ui.html" import page_head, field, textarea, checkbox with context %}
+{% block title %}System settings{% endblock %}
+{% block content %}
+{% call page_head('System settings', 'Platform-wide options stored in the database. Secrets live only in environment variables.') %}
+  <a class="btn btn-ghost" href="{{ url_for('admin.maintenance') }}">{{ icon('tool') }} Maintenance</a>
+  <a class="btn btn-ghost" href="{{ url_for('admin.backups') }}">{{ icon('archive') }} Backups</a>
+{% endcall %}
+<div class="grid-main">
+  <form class="card card-lg" method="post" novalidate data-dirty-guard>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <h2 class="form-section">{{ icon('globe') }} Site</h2>
+    {{ field('site_tagline', 'Homepage tagline', s.site_tagline, maxlength=300) }}
+    {{ field('support_hours', 'Support hours (shown on Help page)', s.support_hours, maxlength=300) }}
+    {{ textarea('maintenance_banner', 'Maintenance banner (leave blank to hide)', s.maintenance_banner, rows=2, maxlength=300, hint='Shown at the top of every page, e.g. “Scheduled maintenance Sunday 10–11 PM.”') }}
+    {{ checkbox('registration_open', 'Allow public registration', s.registration_open == 'true', hint='When off, only administrators can create accounts.', switch=True) }}
+    {{ checkbox('leaderboard_enabled', 'Enable leaderboards', s.leaderboard_enabled == 'true', hint='Students can still hide themselves in their own settings.', switch=True) }}
+    <h2 class="form-section mt-3">{{ icon('layers') }} Quiz defaults</h2>
+    <div class="form-grid">
+      {{ field('default_time_limit', 'Default time limit (min)', s.default_time_limit, 'number', errors=errors, min=1, max=600) }}
+      {{ field('default_pass_percentage', 'Default pass mark (%)', s.default_pass_percentage, 'number', errors=errors, min=0, max=100, step='0.5') }}
+    </div>
+    <h2 class="form-section mt-3">{{ icon('archive') }} Backups</h2>
+    {{ field('auto_backup_hours', 'Automatic backup interval (hours)', s.auto_backup_hours, 'number', errors=errors, min=1, max=720, hint='Applies when AUTO_BACKUP_ENABLED is true in the environment.') }}
+    <div class="row mt-2"><button class="btn btn-primary" type="submit">{{ icon('check') }} Save settings</button></div>
+  </form>
+  <aside class="stack" style="--gap:1.25rem">
+    <section class="card card-lg">
+      <h2 style="margin-top:0;font-size:1.05rem">{{ icon('mail') }} Email delivery</h2>
+      {% if email_mode == 'smtp' %}
+        <div class="alert alert-success">{{ icon('check-circle') }}<div>SMTP configured: <b>{{ mail_server }}</b><br><span class="text-xs">Sender: {{ sender }}</span></div></div>
+      {% else %}
+        <div class="alert alert-dev">{{ icon('alert') }}<div><b>Not delivering real email.</b> Messages go to the development outbox. Set <code>MAIL_SERVER</code>, <code>MAIL_PORT</code>, <code>MAIL_USERNAME</code>, <code>MAIL_PASSWORD</code> and <code>MAIL_DEFAULT_SENDER</code> in <code>.env</code> and restart. See <code>docs/DEPLOYMENT.md</code>.</div></div>
+      {% endif %}
+      <form method="post" action="{{ url_for('admin.settings_test_email') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-soft btn-block" type="submit">{{ icon('send') }} Send test email to {{ current_user.email }}</button></form>
+      {% if email_mode != 'smtp' and config.MAIL_DEV_OUTBOX %}<a class="btn btn-ghost btn-block mt-1" href="{{ url_for('public.dev_outbox') }}">{{ icon('inbox') }} Open development outbox</a>{% endif %}
+    </section>
+    <section class="card">
+      <h2 style="margin-top:0;font-size:1.05rem">{{ icon('info') }} Environment</h2>
+      <ul class="list-divided text-sm">
+        <li class="row-between"><span class="text-muted">Mode</span><span class="badge {{ 'badge-ok' if app_env == 'production' else 'badge-warn' }}">{{ app_env }}</span></li>
+        <li class="row-between"><span class="text-muted">Version</span><span>{{ app_version }}</span></li>
+        <li class="row-between"><span class="text-muted">Timezone</span><span>{{ config.APP_TIMEZONE }}</span></li>
+        <li class="row-between"><span class="text-muted">OTP validity</span><span>{{ config.OTP_TTL_MINUTES }} min</span></li>
+        <li class="row-between"><span class="text-muted">Reset-link validity</span><span>{{ config.RESET_TOKEN_TTL_MINUTES }} min</span></li>
+        <li class="row-between"><span class="text-muted">Login lockout</span><span>{{ config.LOGIN_MAX_FAILURES }} fails → {{ config.LOGIN_LOCK_MINUTES }} min</span></li>
+      </ul>
+    </section>
+  </aside>
+</div>
+{% endblock %}

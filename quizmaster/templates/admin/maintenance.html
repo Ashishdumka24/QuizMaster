@@ -1,0 +1,19 @@
+{% extends "layouts/app.html" %}
+{% from "macros/ui.html" import page_head with context %}
+{% block title %}Maintenance{% endblock %}
+{% block content %}
+{{ page_head('Maintenance', 'Purge old operational records to keep the database lean. Quiz results and audit logs are never purged here.', [('Settings', url_for('admin.settings')), ('Maintenance', None)]) }}
+<div class="grid grid-2">
+  {% for key, title, desc, ic in [('metrics', 'Request metrics', 'Timing samples used for the latency control chart.', 'activity'), ('notifications', 'Read notifications', 'Notifications users have already read.', 'bell'), ('tokens', 'Expired tokens', 'Expired/used OTP codes and reset tokens (age filter not applied; only expired or used ones are removed).', 'key'), ('errors', 'Resolved errors', 'Error-log entries marked resolved.', 'bug')] %}
+  <form class="card" method="post" data-confirm="Permanently delete old {{ title | lower }}? This cannot be undone." data-confirm-ok="Purge">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="target" value="{{ key }}">
+    <div class="row" style="gap:.8rem;flex-wrap:nowrap"><span class="stat-icon">{{ icon(ic) }}</span><div><h2 style="margin:0;font-size:1.05rem">{{ title }}</h2><p class="text-sm text-muted" style="margin:.2rem 0 0">{{ desc }}</p></div></div>
+    <p class="text-sm mt-2">Currently stored: <b>{{ counts[key] }}</b></p>
+    <div class="row" style="align-items:flex-end">
+      {% if key != 'tokens' %}<div class="field" style="margin:0"><label class="label" for="d-{{ key }}">Older than (days)</label><input class="input" id="d-{{ key }}" type="number" name="days" value="30" min="1" max="3650" style="width:120px"></div>{% endif %}
+      <button class="btn btn-danger-soft" type="submit">{{ icon('trash') }} Purge</button>
+    </div>
+  </form>
+  {% endfor %}
+</div>
+{% endblock %}

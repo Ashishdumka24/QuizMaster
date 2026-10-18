@@ -1,0 +1,33 @@
+{% extends "layouts/app.html" %}
+{% from "macros/ui.html" import page_head, pagination, empty with context %}
+{% block title %}Audit log{% endblock %}
+{% block content %}
+{% set qs = args.to_dict() %}{% set _ = qs.pop('page', None) %}
+{% call page_head('Audit log', 'Append-only record of security and administrative events.') %}
+  <div class="dropdown" data-dropdown><button class="btn btn-primary" type="button" aria-haspopup="true" aria-expanded="false">{{ icon('download') }} Export</button>
+    <div class="dropdown-menu dropdown-right" role="menu">{% for f, l in [('csv', 'CSV'), ('xlsx', 'Excel'), ('pdf', 'PDF')] %}{% set _ = qs.update({'format': f}) %}<a class="dropdown-item" role="menuitem" href="{{ url_for('admin.audit_export', **qs) }}">{{ l }}</a>{% endfor %}</div></div>
+{% endcall %}
+<form class="filters" method="get" role="search">
+  <label class="sr-only" for="au-a">Action</label><select class="select" id="au-a" name="action" data-autosubmit><option value="">All actions</option>{% for a in actions %}<option value="{{ a }}"{{ ' selected' if args.get('action') == a }}>{{ a | replace('_', ' ') }}</option>{% endfor %}</select>
+  <div class="grow">{{ icon('user') }}<label class="sr-only" for="au-u">User</label><input class="input" id="au-u" type="search" name="user" value="{{ args.get('user', '') }}" placeholder="User name or email…"></div>
+  <label class="text-xs text-muted" for="au-from">From</label><input class="input" style="width:auto" type="date" id="au-from" name="from" value="{{ args.get('from', '') }}">
+  <label class="text-xs text-muted" for="au-to">To</label><input class="input" style="width:auto" type="date" id="au-to" name="to" value="{{ args.get('to', '') }}">
+  <button class="btn btn-soft" type="submit">Apply</button>
+  {% if args.get('action') or args.get('user') or args.get('from') or args.get('to') %}<a class="btn btn-ghost" href="{{ url_for('admin.audit') }}">{{ icon('x') }} Clear</a>{% endif %}
+</form>
+{% if page.items %}
+<div class="card card-flush"><div class="table-wrap"><table class="table table-stack table-compact">
+  <thead><tr><th>Time (IST)</th><th>User</th><th>Action</th><th>Entity</th><th>Details</th><th>IP</th></tr></thead>
+  <tbody>{% for l in page.items %}<tr>
+    <td data-label="Time" class="text-xs" style="white-space:nowrap">{{ l.created_at | dt('%d %b %Y, %H:%M:%S') }}</td>
+    <td data-label="User">{% if l.user %}<a href="{{ url_for('admin.user_detail', user_id=l.user_id) }}">{{ l.user.email }}</a>{% else %}<span class="text-muted">system / anonymous</span>{% endif %}</td>
+    <td data-label="Action"><span class="badge {{ 'badge-bad' if 'fail' in l.action or 'lock' in l.action or 'delete' in l.action else ('badge-warn' if 'role' in l.action or 'disable' in l.action or 'override' in l.action else 'badge-outline') }}">{{ l.action | replace('_', ' ') }}</span></td>
+    <td data-label="Entity" class="text-xs">{{ l.entity_type or '' }}{% if l.entity_id %} #{{ l.entity_id }}{% endif %}</td>
+    <td data-label="Details" class="text-xs" style="max-width:380px;word-break:break-word">{{ l.details or '' }}</td>
+    <td data-label="IP" class="text-xs">{{ l.ip_address or '' }}</td>
+  </tr>{% endfor %}</tbody></table></div></div>
+{{ pagination(page, 'admin.audit') }}
+{% else %}
+<div class="card">{{ empty('No matching entries', 'Try a wider date range or clear filters.', 'shield') }}</div>
+{% endif %}
+{% endblock %}

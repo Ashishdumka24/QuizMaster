@@ -1,0 +1,39 @@
+{% extends "layouts/app.html" %}
+{% from "macros/ui.html" import page_head, field, textarea, select, checkbox, empty with context %}
+{% block title %}Announcements{% endblock %}
+{% block content %}
+{{ page_head('Announcements', 'Publish news to the dashboard. Publishing also sends an in-app notification.') }}
+<div class="grid-main">
+  <section class="stack" style="--gap:1rem">
+    {% for a in items %}
+    <article class="card announce{{ ' pinned' if a.pinned }}">
+      <div class="row-between"><div class="row" style="gap:.4rem">{% if a.pinned %}<span class="badge badge-warn">{{ icon('pin') }} Pinned</span>{% endif %}{% if a.is_published %}<span class="badge badge-ok">Published</span>{% else %}<span class="badge badge-outline">Draft</span>{% endif %}<span class="badge badge-info">{{ {'all': 'Everyone', 'students': 'Students', 'admins': 'Admins'}[a.audience] }}</span></div>
+        <span class="text-xs text-muted">{{ (a.published_at or a.created_at) | dt }}</span></div>
+      <h3 style="margin:.6rem 0 .3rem;font-size:1.05rem">{{ a.title }}</h3>
+      <p class="text-sm" style="white-space:pre-line;color:var(--ink-2);margin:0">{{ a.body }}</p>
+      <div class="row mt-2">
+        <a class="btn btn-soft btn-xs" href="{{ url_for('admin.announcements', edit=a.id) }}#ann-form">{{ icon('edit') }} Edit</a>
+        <form method="post" action="{{ url_for('admin.announcement_action', ann_id=a.id) }}"{% if not a.is_published %} data-confirm="Publish now? Recipients get a notification." data-confirm-ok="Publish" data-confirm-danger="false"{% endif %}><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="action" value="{{ 'unpublish' if a.is_published else 'publish' }}"><button class="btn btn-ghost btn-xs" type="submit">{{ icon('eye-off' if a.is_published else 'send') }} {{ 'Unpublish' if a.is_published else 'Publish' }}</button></form>
+        <form method="post" action="{{ url_for('admin.announcement_action', ann_id=a.id) }}" data-confirm="Delete “{{ a.title }}”?" data-confirm-ok="Delete"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="action" value="delete"><button class="btn btn-danger-soft btn-xs" type="submit">{{ icon('trash') }} Delete</button></form>
+      </div>
+    </article>
+    {% else %}<div class="card">{{ empty('No announcements yet', 'Write the first one with the form.', 'megaphone') }}</div>{% endfor %}
+  </section>
+  <aside>
+    <form id="ann-form" class="card card-lg" method="post" action="{{ url_for('admin.announcements') }}" style="position:sticky;top:calc(var(--topbar-h) + 1rem)" data-dirty-guard>
+      <h2 style="margin-top:0;font-size:1.1rem">{{ 'Edit announcement' if edit else 'New announcement' }}</h2>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      {% if edit %}<input type="hidden" name="id" value="{{ edit.id }}">{% endif %}
+      {{ field('title', 'Title', form.title, errors=errors, required=True, maxlength=150) }}
+      {{ textarea('body', 'Message', form.body, errors=errors, required=True, rows=6, maxlength=5000, attrs='data-counter') }}
+      {{ select('audience', 'Audience', [('all', 'Everyone'), ('students', 'Students only'), ('admins', 'Administrators only')], form.audience) }}
+      {{ checkbox('pinned', 'Pin to the top of dashboards', form.pinned, switch=True) }}
+      <div class="row mt-2">
+        {% if not edit or not edit.is_published %}<button class="btn btn-primary" type="submit" name="publish" value="1">{{ icon('send') }} {{ 'Save & publish' }}</button>{% endif %}
+        <button class="btn {{ 'btn-primary' if edit and edit.is_published else 'btn-ghost' }}" type="submit" name="publish" value="0">{{ 'Save changes' if edit and edit.is_published else 'Save draft' }}</button>
+        {% if edit %}<a class="btn btn-ghost" href="{{ url_for('admin.announcements') }}">Cancel</a>{% endif %}
+      </div>
+    </form>
+  </aside>
+</div>
+{% endblock %}
