@@ -18,3 +18,4 @@ gunicorn>=22; platform_system != "Windows"
 waitress>=3.0
 # Testing
 pytest>=8
+psycopg[binary]>=3.2,<4
