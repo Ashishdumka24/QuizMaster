@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+# Secrets & local data (never commit)
+.env
+instance/
+*.db
+*.sqlite3
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+# Generated
+tqm/output/*.png
+!tqm/output/.gitkeep
