@@ -20,6 +20,7 @@ import smtplib
 import ssl
 import os
 import urllib.request
+import urllib.error
 from email.message import EmailMessage
 from email.utils import formataddr, make_msgid, parseaddr
 from pathlib import Path
@@ -81,16 +82,39 @@ def _send_via_apps_script(
                 "We could not send the email right now. Please try again shortly."
             )
 
+    
     except EmailDeliveryError:
         raise
-    except Exception as exc:
+    except urllib.error.HTTPError as exc:
+        try:
+            response_preview = exc.read(300).decode(
+                "utf-8", errors="replace"
+            )
+        except Exception:
+            response_preview = "unavailable"
+
         current_app.logger.warning(
-            "Apps Script email delivery failed; exception_type=%s",
-            type(exc).__name__,
+            "Apps Script relay HTTP failure; http_status=%s "
+            "reason=%s response_preview=%r",
+            exc.code,
+            str(exc.reason)[:200],
+            response_preview[:300],
         )
         raise EmailDeliveryError(
             "We could not send the email right now. Please try again shortly."
         ) from exc
+
+    except Exception as exc:
+        current_app.logger.warning(
+            "Apps Script email delivery failed; exception_type=%s "
+            "reason=%s",
+            type(exc).__name__,
+            str(getattr(exc, "reason", exc))[:200],
+        )
+        raise EmailDeliveryError(
+            "We could not send the email right now. Please try again shortly."
+        ) from exc
+
 
 
 def smtp_configured() -> bool:
