@@ -346,6 +346,23 @@ DEVELOPMENT_DEFECTS = [
     ("Fragile UTC conversion in admin date-range filter", "Data Integrity", "Software Code", "Low",
      "admin._date_range", "Timezone object re-instantiated via tz.__class__('UTC') instead of datetime.timezone.utc",
      "Replaced with datetime.timezone.utc", "Central time helpers in utils.py; review for ad-hoc tz code"),
+    ("Every page crashed: current_user undefined inside imported macros", "UI / Layout", "Software Code", "Critical",
+     "templates/macros", "Jinja macros imported with {% from %} do not receive the request context by default",
+     "All macro imports use 'with context'", "Automated render test of every page for each role (pytest)"),
+    ("Pagination macro failed to compile", "UI / Layout", "Software Code", "High", "templates/macros/ui.html",
+     "Two **kwargs expansions in one url_for call, which Jinja does not support",
+     "Merged keyword arguments into one dict before calling url_for",
+     "Compile every template in the test suite before release"),
+    ("Optional macro caller() guard failed under strict template checks", "UI / Layout", "Software Code", "Low",
+     "templates/macros/ui.html", "Macros tested 'caller' truthiness instead of 'caller is defined'",
+     "Use 'caller is defined'", "Strict-undefined template test mode (QM_STRICT_TEMPLATES=1)"),
+    ("Redirect after marking notifications read trusted the Referer header", "Validation", "Software Code", "Medium",
+     "student.api_notifications_read", "Unvalidated redirect target taken from request.referrer",
+     "Redirect to the internal notifications page; admin redirects use same-host safe_back()",
+     "Security review checklist: never redirect to unvalidated user-controlled URLs"),
+    ("Quiz form crashed for new quizzes in strict template mode", "Validation", "Software Code", "Low",
+     "admin.quiz_new", "View did not pass the 'problems' list that the template expects",
+     "Pass an empty problems list for new quizzes", "Strict-undefined render tests for every admin page"),
 ]
 
 
