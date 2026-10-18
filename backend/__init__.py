@@ -167,7 +167,9 @@ def _register_errors(app: Flask) -> None:
     @app.errorhandler(CSRFError)
     def csrf_error(e):
         return render(400, "Security check failed",
-                      "Your form expired or the security token was missing. Refresh the page and try again.")
+                      "Your form expired or the security token was missing. Refresh the page and try again. "
+                      "If it keeps happening, your browser is blocking this site's session cookie (common inside "
+                      "embedded previews) — open the site in its own browser tab.")
 
     @app.errorhandler(429)
     def too_many(e):

@@ -65,6 +65,9 @@ class Config:
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = os.environ.get("SESSION_COOKIE_SAMESITE", "Lax")
     SESSION_COOKIE_SECURE = _bool("SESSION_COOKIE_SECURE", False)
+    # CHIPS "Partitioned" attribute: lets the session cookie work when the site is shown inside a
+    # cross-site iframe in browsers that block third-party cookies (requires Secure + SameSite=None).
+    SESSION_COOKIE_PARTITIONED = _bool("SESSION_COOKIE_PARTITIONED", False)
     REMEMBER_COOKIE_HTTPONLY = True
     REMEMBER_COOKIE_SAMESITE = SESSION_COOKIE_SAMESITE
     # Who may embed the site in an iframe. Production default: same origin only.
