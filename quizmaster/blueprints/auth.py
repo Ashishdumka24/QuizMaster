@@ -325,7 +325,7 @@ def forgot_password():
             if not error:
                 sent = True
     return render_template("auth/forgot.html", sent=sent, error=error, email=email,
-                           dev_outbox=session.get("dev_outbox_notice") and delivery_mode() == "outbox",
+                           dev_outbox=delivery_mode() == "outbox",  # shown for every address: no enumeration
                            ttl=current_app.config["RESET_TOKEN_TTL_MINUTES"])
 
 

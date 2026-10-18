@@ -64,7 +64,10 @@ def app(tmp_path):
             u.set_password(pw)
             db.session.add(u)
         db.session.commit()
-        yield application
+    # Requests must run outside a long-lived app context: otherwise ``g`` (and
+    # Flask-Login's cached user) would leak between independent test clients.
+    yield application
+    with application.app_context():
         db.session.remove()
         db.drop_all()
 
