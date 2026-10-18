@@ -1,0 +1,31 @@
+{% extends "layouts/app.html" %}
+{% from "macros/ui.html" import page_head, avatar, score_pill, empty %}
+{% block title %}Leaderboard{% endblock %}
+{% block content %}
+{% call page_head('Leaderboard', ('Best released score per student for “' ~ quiz.title ~ '”.') if quiz else 'Average of each student’s best score per quiz.') %}
+  <form method="get" class="row"><label class="sr-only" for="lb-quiz">Quiz</label>
+    <select class="select" id="lb-quiz" name="quiz" data-autosubmit style="min-width:240px"><option value="">Overall ranking</option>{% for q in quizzes %}<option value="{{ q.id }}"{{ ' selected' if quiz and quiz.id == q.id }}>{{ q.title }}</option>{% endfor %}</select>
+    <noscript><button class="btn btn-soft" type="submit">Show</button></noscript></form>
+{% endcall %}
+<p class="text-xs text-muted">{{ icon('info') }} Ranking rule: {% if quiz %}highest released percentage → less time taken → earlier submission{% else %}average of best released percentage per quiz → more quizzes completed → name{% endif %}. Only students who allow it in Settings are shown.
+{% if not current_user.is_admin and not user_prefs.leaderboard_visible %}<b>You are hidden.</b> <a href="{{ url_for('account.settings') }}">Change</a>{% endif %}</p>
+{% if rows %}
+  {% if rows | length >= 3 %}
+  <div class="podium mt-2">
+    {% for idx, cls in [(1, 'p2'), (0, 'p1'), (2, 'p3')] %}{% set r = rows[idx] %}
+    <div class="place {{ cls }}{{ ' rank-me' if r.is_me }}"><span class="medal">{{ r.rank }}</span>{{ avatar(r.user, 'avatar-lg') }}<b>{{ r.user.public_name }}</b>
+      <span class="text-sm text-muted">{% if quiz %}{{ '%.1f' | format(r.pct or 0) }}% · {{ r.time | duration }}{% else %}{{ r.avg }}% avg · {{ r.quizzes }} quiz{{ 'zes' if r.quizzes != 1 }}{% endif %}</span></div>
+    {% endfor %}
+  </div>
+  {% endif %}
+  <div class="card card-flush"><div class="table-wrap"><table class="table table-stack">
+    <thead><tr><th>Rank</th><th>Student</th>{% if quiz %}<th>Best score</th><th>Time</th>{% else %}<th>Average best</th><th>Quizzes</th>{% endif %}</tr></thead>
+    <tbody>{% for r in rows %}<tr class="{{ 'rank-me' if r.is_me }}"><td data-label="Rank"><b>#{{ r.rank }}</b></td>
+      <td data-label="Student"><span class="row" style="gap:.6rem;flex-wrap:nowrap">{{ avatar(r.user, 'avatar-sm') }}<span>{{ r.user.public_name }}{% if r.is_me %} <span class="badge badge-accent">You</span>{% endif %}</span></span></td>
+      {% if quiz %}<td data-label="Best score">{{ score_pill(r.pct) }}</td><td data-label="Time">{{ r.time | duration }}</td>
+      {% else %}<td data-label="Average best">{{ score_pill(r.avg) }}</td><td data-label="Quizzes">{{ r.quizzes }}</td>{% endif %}</tr>{% endfor %}</tbody>
+  </table></div></div>
+{% else %}
+<div class="card">{{ empty('No rankings yet', 'Rankings appear once students complete quizzes with released results.', 'trophy', url_for('quiz.explore') if not current_user.is_admin else None, 'Take a quiz') }}</div>
+{% endif %}
+{% endblock %}

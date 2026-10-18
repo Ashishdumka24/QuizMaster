@@ -1,0 +1,79 @@
+{% extends "layouts/app.html" %}
+{% from "macros/ui.html" import status_badge %}
+{% block title %}Result · {{ quiz.title }}{% endblock %}
+{% block content %}
+{% set own = attempt.user_id == current_user.id %}
+<ol class="breadcrumbs">
+  {% if current_user.is_admin %}<li><a href="{{ url_for('admin.results') }}">Results</a></li><li><a href="{{ url_for('admin.attempt_detail', attempt_id=attempt.id) }}">Attempt #{{ attempt.id }}</a></li>
+  {% else %}<li><a href="{{ url_for('student.results') }}">Results</a></li>{% endif %}<li><span aria-current="page">{{ quiz.title }}</span></li>
+</ol>
+{% if not released %}
+<section class="card card-lg text-center fade-up">
+  <div class="empty-art" style="margin:0 auto 1rem;position:relative">{{ icon('clock') }}</div>
+  <h1 style="font-size:1.6rem">Submitted — result pending</h1>
+  <p class="text-muted" style="max-width:560px;margin:0 auto 1rem">Your answers for <b>{{ quiz.title }}</b> were received {{ attempt.submitted_at | dt }} and graded securely. The administrator releases results <b>{{ RELEASE_POLICIES.get(quiz.result_release, '').lower() }}</b>{% if quiz.result_release == 'after_close' and quiz.end_at %} ({{ quiz.end_at | dt }}){% endif %}. You’ll get a notification when it’s available.</p>
+  <div class="row" style="justify-content:center">{{ status_badge(attempt.status) }}{% if attempt.auto_submitted %}<span class="badge badge-outline">Auto-submitted at time-out</span>{% endif %}</div>
+  <div class="row mt-3" style="justify-content:center"><a class="btn btn-primary" href="{{ url_for('student.dashboard') }}">{{ icon('dashboard') }} Back to dashboard</a><a class="btn btn-ghost" href="{{ url_for('quiz.explore') }}">Explore more quizzes</a></div>
+</section>
+{% else %}
+{% set pct = attempt.percentage or 0 %}
+<section class="card result-hero {{ 'pass' if attempt.passed else 'fail' }} fade-up" {% if attempt.passed and own %}data-confetti{% endif %}>
+  <div class="ring" style="--p: {{ pct }}"><div><div class="ring-value">{{ '%.0f' | format(pct) }}%</div><div class="ring-label">score</div></div></div>
+  <div>
+    <div class="row" style="gap:.4rem">{% if attempt.passed %}<span class="badge badge-ok">{{ icon('check-circle') }} Passed</span>{% else %}<span class="badge badge-bad">{{ icon('x-circle') }} Not passed</span>{% endif %}
+      {{ status_badge(attempt.status) }}{% if attempt.auto_submitted %}<span class="badge badge-outline">Auto-submitted</span>{% endif %}{% if attempt.manually_adjusted %}<span class="badge badge-info" title="An administrator adjusted the grading of at least one answer">Grading adjusted</span>{% endif %}</div>
+    <h1 style="margin:.6rem 0 .2rem;font-size:clamp(1.4rem,1.1rem + 1.2vw,2rem)">{{ ('Great work, ' ~ attempt.user.first_name ~ '!') if attempt.passed else ('Keep going, ' ~ attempt.user.first_name ~ '!') }}</h1>
+    <p class="text-muted" style="margin:0">{{ quiz.title }} · attempt #{{ attempt.attempt_number }} · pass mark {{ '%.0f' | format(attempt.pass_percentage) }}%</p>
+    <div class="result-stats">
+      <div><b>{{ '%g' | format(attempt.score or 0) }}<span class="text-muted" style="font-size:.8em">/{{ '%g' | format(attempt.max_score) }}</span></b><span>Marks</span></div>
+      <div><b class="ok">{{ attempt.correct_count }}</b><span>Correct</span></div>
+      <div><b class="bad">{{ attempt.incorrect_count }}</b><span>Incorrect</span></div>
+      <div><b>{{ attempt.time_taken_seconds | duration }}</b><span>Time taken</span></div>
+    </div>
+  </div>
+</section>
+<div class="row mt-2">
+  {% if attempt.passed %}<a class="btn btn-warm" href="{{ url_for('quiz.certificate', attempt_id=attempt.id) }}">{{ icon('award') }} View certificate</a>{% endif %}
+  {% if info and info.can_start %}
+  <form method="post" action="{{ url_for('quiz.start', slug=quiz.slug) }}" data-confirm="A new timed attempt will start immediately.{% if info.attempts_left is not none %} {{ info.attempts_left }} attempt{{ 's' if info.attempts_left != 1 }} left.{% endif %}" data-confirm-title="Retake this quiz?" data-confirm-ok="Start new attempt" data-confirm-danger="false">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-primary" type="submit">{{ icon('refresh') }} Retake quiz</button></form>
+  {% endif %}
+  <a class="btn btn-ghost" href="{{ url_for('quiz.detail', slug=quiz.slug) }}">{{ icon('info') }} Quiz details</a>
+  <button type="button" class="btn btn-ghost" data-print>{{ icon('printer') }} Print</button>
+  {% if own %}<a class="btn btn-ghost" href="{{ url_for('student.feedback') }}">{{ icon('flag') }} Report a grading issue</a>{% endif %}
+</div>
+
+<section class="mt-3">
+  <div class="row-between mb-2"><h2 style="margin:0;font-size:1.2rem">Answer review</h2>
+    <span class="text-sm text-muted">{% if not rows or not rows[0].correct_ids and not rows[0].accepted and not current_user.is_admin and not quiz.show_correct_answers %}Correct answers are hidden for this quiz.{% endif %}</span></div>
+  {% for r in rows %}
+  {% set q = r.q %}
+  {% set state = 'unanswered' if not r.answered else ('correct' if r.is_correct else 'incorrect') %}
+  <article class="card review-item {{ state }} mb-2">
+    <div class="q-meta"><span class="q-num">Question {{ r.n }}</span>
+      <span class="row" style="gap:.35rem">
+        {% if state == 'correct' %}<span class="badge badge-ok">{{ icon('check') }} Correct</span>{% elif state == 'incorrect' %}<span class="badge badge-bad">{{ icon('x') }} Incorrect</span>{% else %}<span class="badge badge-outline">Not answered</span>{% endif %}
+        <span class="badge badge-accent">{{ '%+g' | format(r.marks) if r.marks < 0 else '%g' | format(r.marks) }} / {{ '%g' | format(q.marks) }}</span>
+        {% if r.override %}<span class="badge badge-info" title="{{ r.note or '' }}">Adjusted by admin</span>{% endif %}
+      </span></div>
+    <h3 style="font-size:1.05rem;white-space:pre-line">{{ q.text }}</h3>
+    {% if q.image %}<img class="q-image" src="{{ url_for('public.media', kind='questions', filename=q.image) }}" alt="Question image">{% endif %}
+    {% if q.options %}
+      {% for o in q.options %}
+        {% set picked = o.id in r.selected %}{% set right = o.id in r.correct_ids %}
+        <div class="review-opt{{ ' is-correct' if right }}{{ ' is-wrong' if picked and not right and r.correct_ids }}">
+          <span>{{ o.text }}</span>
+          {% if picked %}<span class="badge badge-outline" style="margin-left:auto">Your answer</span>{% endif %}
+          {% if right %}{{ icon('check-circle') }}{% elif picked and r.correct_ids %}{{ icon('x-circle') }}{% endif %}
+        </div>
+      {% endfor %}
+    {% else %}
+      <p class="text-sm" style="margin:.3rem 0">Your answer: <b>{{ r.text_answer or '—' }}</b></p>
+      {% if r.accepted %}<p class="text-sm ok" style="margin:.3rem 0">Accepted answer{{ 's' if r.accepted | length > 1 }}: <b>{{ r.accepted | join(' · ') }}</b></p>{% endif %}
+    {% endif %}
+    {% if r.explanation %}<div class="explain">{{ icon('lightbulb') }}<div>{{ r.explanation }}</div></div>{% endif %}
+  </article>
+  {% endfor %}
+</section>
+{% endif %}
+{% endblock %}

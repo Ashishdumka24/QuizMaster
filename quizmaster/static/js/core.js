@@ -424,7 +424,8 @@
       if (max && f.size > max) { QM.toast("That file is larger than " + Math.round(max / 1048576 * 10) / 10 + " MB. Choose a smaller image.", "error"); input.value = ""; return; }
       if (!/^image\/(png|jpe?g|webp|gif)$/.test(f.type)) { QM.toast("Choose a PNG, JPG, WEBP or GIF image.", "error"); input.value = ""; return; }
       var url = URL.createObjectURL(f);
-      if (target.tagName === "IMG") target.src = url; else target.innerHTML = '<img alt="Selected image preview" src="' + url + '">';
+      var av = target.classList.contains("avatar") ? target : (target.querySelector(".avatar") || target);
+      if (av.tagName === "IMG") av.src = url; else av.innerHTML = '<img alt="Selected image preview" src="' + url + '">';
       var name = document.getElementById(input.id + "-name"); if (name) name.textContent = f.name;
     });
   });

@@ -1,0 +1,95 @@
+{% extends "layouts/app.html" if current_user.is_authenticated and current_user.is_verified else "layouts/public.html" %}
+{% from "macros/ui.html" import difficulty_badge, status_badge, score_pill, avatar %}
+{% block title %}{{ quiz.title }}{% endblock %}
+{% block content %}
+{% set in_app = current_user.is_authenticated and current_user.is_verified %}
+{% set cat = quiz.category %}
+<div class="{{ '' if in_app else 'container section' }}" style="{{ '' if in_app else 'padding-top:2rem' }}">
+  <ol class="breadcrumbs"><li><a href="{{ url_for('quiz.explore') }}">Explore</a></li>{% if cat %}<li><a href="{{ url_for('quiz.explore', category=cat.slug) }}">{{ cat.name }}</a></li>{% endif %}<li><span aria-current="page">{{ quiz.title }}</span></li></ol>
+  <section class="card card-flush fade-up" style="--cat: {{ cat.color if cat else '#6366F1' }}; overflow:hidden">
+    <div class="quiz-cover" style="height:auto;padding:2rem;display:block">
+      <div class="row" style="gap:.5rem;margin-bottom:.8rem">
+        <span class="cat-ic">{{ icon(cat.icon if cat else 'book') }}</span>
+        {% if cat %}<span class="badge">{{ cat.name }}</span>{% endif %}
+        <span class="badge">{{ quiz.difficulty | capitalize }}</span>
+        {% if quiz.status != 'published' %}<span class="badge">{{ quiz.status | capitalize }}</span>{% endif %}
+        {% if state == 'upcoming' %}<span class="badge">Opens soon</span>{% elif state == 'ended' %}<span class="badge">Closed</span>{% endif %}
+      </div>
+      <h1 style="color:#fff;margin:0 0 .5rem;font-size:clamp(1.5rem,1.1rem + 1.6vw,2.3rem)">{{ quiz.title }}</h1>
+      <p style="margin:0;opacity:.9;max-width:720px">{{ quiz.description or '' }}</p>
+    </div>
+    <div class="grid grid-4" style="padding:1.2rem 1.4rem;gap:.8rem">
+      <div><div class="stat-label">Questions</div><div class="stat-value" style="font-size:1.4rem">{{ quiz.question_count }}</div></div>
+      <div><div class="stat-label">Time limit</div><div class="stat-value" style="font-size:1.4rem">{{ quiz.time_limit_minutes }}<small> min</small></div></div>
+      <div><div class="stat-label">Pass mark</div><div class="stat-value" style="font-size:1.4rem">{{ '%.0f' | format(quiz.pass_percentage) }}<small>%</small></div></div>
+      <div><div class="stat-label">Total marks</div><div class="stat-value" style="font-size:1.4rem">{{ '%g' | format(quiz.total_marks) }}</div></div>
+    </div>
+  </section>
+
+  <div class="grid-main mt-3">
+    <div class="stack" style="--gap:1.25rem">
+      <section class="card card-lg">
+        <h2 style="margin-top:0;font-size:1.15rem">{{ icon('list-checks') }} Rules for this quiz</h2>
+        <ul class="check-list" style="margin:0">
+          <li>{{ icon('check') }} <span>You have <b>{{ quiz.time_limit_minutes }} minutes</b>. The timer starts when you press Start and continues on the server even if you leave.</span></li>
+          <li>{{ icon('check') }} <span>{% if quiz.max_attempts %}You may attempt this quiz <b>{{ quiz.max_attempts }} time{{ 's' if quiz.max_attempts > 1 }}</b>.{% else %}You may attempt this quiz <b>as many times as you like</b>.{% endif %}</span></li>
+          <li>{{ icon('check') }} <span>{% if quiz.negative_marking %}<b>Negative marking applies</b> — wrong answers deduct the marks shown on each question. Blank answers score zero.{% else %}No negative marking — wrong answers simply score zero.{% endif %}</span></li>
+          <li>{{ icon('check') }} <span>Results are released <b>{{ RELEASE_POLICIES.get(quiz.result_release, '').lower() }}</b>.{% if quiz.show_correct_answers %} Correct answers are shown in the review.{% endif %}{% if quiz.show_explanations %} Explanations are included.{% endif %}</span></li>
+          {% if quiz.shuffle_questions or quiz.shuffle_options %}<li>{{ icon('check') }} <span>Questions{{ ' and options' if quiz.shuffle_options }} appear in a random order for each attempt.</span></li>{% endif %}
+          {% if quiz.start_at or quiz.end_at %}<li>{{ icon('calendar') }} <span>{% if quiz.start_at %}Opens <b>{{ quiz.start_at | dt }}</b>{% endif %}{% if quiz.start_at and quiz.end_at %} · {% endif %}{% if quiz.end_at %}Closes <b>{{ quiz.end_at | dt }}</b>{% endif %} (IST).</span></li>{% endif %}
+        </ul>
+        {% if quiz.instructions %}<div class="callout mt-2" style="white-space:pre-line">{{ quiz.instructions }}</div>{% endif %}
+      </section>
+      {% if quiz.learning_material %}
+      <section class="card card-lg"><h2 style="margin-top:0;font-size:1.15rem">{{ icon('book') }} Prepare</h2><div style="white-space:pre-line;color:var(--ink-2)">{{ quiz.learning_material }}</div></section>
+      {% endif %}
+      {% if my_attempts %}
+      <section class="card card-flush"><div class="card-head" style="padding:1.1rem 1.2rem 0"><h2 style="margin:0;font-size:1.1rem">Your attempts</h2></div>
+        <div class="table-wrap"><table class="table table-stack"><thead><tr><th>#</th><th>Started</th><th>Status</th><th>Score</th><th></th></tr></thead><tbody>
+        {% for a in my_attempts %}<tr><td data-label="Attempt">{{ a.attempt_number }}</td><td data-label="Started">{{ a.started_at | dt }}</td><td data-label="Status">{{ status_badge(a.status) }}</td>
+          <td data-label="Score">{% if a.status == 'in_progress' %}—{% elif released(a) %}{{ score_pill(a.percentage) }}{% else %}<span class="badge badge-outline">Pending</span>{% endif %}</td>
+          <td class="text-right">{% if a.status == 'in_progress' %}<a class="btn btn-primary btn-sm" href="{{ url_for('quiz.play', attempt_id=a.id) }}">Resume</a>{% else %}<a class="btn btn-soft btn-sm" href="{{ url_for('quiz.result', attempt_id=a.id) }}">View</a>{% endif %}</td></tr>{% endfor %}
+        </tbody></table></div></section>
+      {% endif %}
+    </div>
+
+    <aside class="stack" style="--gap:1.25rem">
+      <section class="card card-lg" style="position:sticky;top:calc(var(--topbar-h) + 1rem)">
+        {% if not current_user.is_authenticated %}
+          <h2 style="margin-top:0;font-size:1.15rem">Ready to begin?</h2>
+          <p class="text-sm text-muted">Sign in or create a free account to take this quiz and keep your results.</p>
+          <a class="btn btn-primary btn-block" href="{{ url_for('auth.login', next=request.path) }}">{{ icon('log-in') }} Sign in to start</a>
+          <a class="btn btn-ghost btn-block mt-1" href="{{ url_for('auth.register') }}">Create account</a>
+        {% elif info %}
+          {% if info.can_resume %}
+            <h2 style="margin-top:0;font-size:1.15rem">Attempt in progress</h2>
+            <p class="text-sm text-muted">Your timer is still running. Resume now to continue where you left off.</p>
+            <a class="btn btn-primary btn-lg btn-block" href="{{ url_for('quiz.play', attempt_id=info.in_progress.id) }}">{{ icon('play') }} Resume attempt</a>
+          {% elif info.can_start %}
+            <h2 style="margin-top:0;font-size:1.15rem">Ready to begin?</h2>
+            <p class="text-sm text-muted">{{ quiz.question_count }} questions · {{ quiz.time_limit_minutes }} minutes{% if info.attempts_left is not none %} · {{ info.attempts_left }} attempt{{ 's' if info.attempts_left != 1 }} left{% endif %}</p>
+            <form method="post" action="{{ url_for('quiz.start', slug=quiz.slug) }}" data-confirm="The {{ quiz.time_limit_minutes }}-minute timer starts immediately and keeps running even if you close the page.{% if info.attempts_left is not none %} This will use 1 of your {{ info.attempts_left }} remaining attempt{{ 's' if info.attempts_left != 1 }}.{% endif %}" data-confirm-title="Start “{{ quiz.title }}”?" data-confirm-ok="Start quiz" data-confirm-danger="false">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn btn-primary btn-lg btn-block" type="submit">{{ icon('play') }} Start quiz</button>
+            </form>
+          {% else %}
+            <h2 style="margin-top:0;font-size:1.15rem">Not available</h2>
+            <div class="alert alert-info">{{ icon('info') }}<div>{{ info.reason }}</div></div>
+            {% if state == 'upcoming' and quiz.start_at %}<p class="text-sm text-center">Opens in <b data-countdown="{{ quiz.start_at | iso }}" data-reload></b></p>{% endif %}
+          {% endif %}
+          {% if info.attempts_used %}<p class="text-xs text-muted text-center mt-1" style="margin-bottom:0">Attempts used: {{ info.attempts_used }}{% if quiz.max_attempts %} of {{ quiz.max_attempts }}{% endif %}</p>{% endif %}
+          {% if current_user.is_admin %}
+          <div class="row mt-2"><a class="btn btn-soft btn-sm" href="{{ url_for('admin.quiz_preview', quiz_id=quiz.id) }}">{{ icon('eye') }} Preview</a><a class="btn btn-ghost btn-sm" href="{{ url_for('admin.quiz_edit', quiz_id=quiz.id) }}">{{ icon('edit') }} Edit</a><a class="btn btn-ghost btn-sm" href="{{ url_for('admin.quiz_analysis', quiz_id=quiz.id) }}">{{ icon('bar-chart') }} Analysis</a></div>
+          {% endif %}
+        {% endif %}
+      </section>
+      {% if board %}
+      <section class="card"><div class="card-head"><h2 style="margin:0;font-size:1.05rem">{{ icon('trophy') }} Top scores</h2>{% if in_app %}<a class="btn btn-ghost btn-xs" href="{{ url_for('quiz.leaderboard', quiz=quiz.id) }}">All</a>{% endif %}</div>
+        {% for r in board %}<div class="activity-item{{ ' rank-me' if r.is_me }}"><b style="width:1.5rem">{{ r.rank }}</b>{{ avatar(r.user, 'avatar-sm') }}<span style="flex:1;min-width:0" class="truncate text-sm">{{ r.user.public_name }}</span>{{ score_pill(r.pct) }}</div>{% endfor %}
+      </section>
+      {% endif %}
+      {% if quiz.tag_list %}<section class="card"><h3 style="margin-top:0;font-size:.95rem">Tags</h3><div class="row" style="gap:.35rem">{% for t in quiz.tag_list %}<a class="tag" href="{{ url_for('quiz.explore', q=t) }}">#{{ t }}</a>{% endfor %}</div></section>{% endif %}
+    </aside>
+  </div>
+</div>
+{% endblock %}

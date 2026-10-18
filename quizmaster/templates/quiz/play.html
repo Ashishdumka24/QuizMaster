@@ -1,0 +1,26 @@
+{% extends "layouts/base.html" %}
+{% from "macros/ui.html" import brand %}
+{% block title %}{{ quiz.title }} — in progress{% endblock %}
+{% block body_class %}has-mesh player-body{% endblock %}
+{% block body %}
+<header class="topbar" style="position:sticky">
+  {{ brand('brand-sm', url_for('student.dashboard'), False) }}
+  <div style="min-width:0;flex:1"><b class="truncate" style="display:block">{{ quiz.title }}</b><span class="text-xs text-muted">Attempt #{{ attempt.attempt_number }} · answers save automatically</span></div>
+  <button type="button" class="icon-btn" data-theme-toggle aria-label="Toggle dark mode">{{ icon('moon', 'theme-moon') }}{{ icon('sun', 'theme-sun') }}</button>
+  <a class="btn btn-ghost btn-sm" href="{{ url_for('student.dashboard') }}" title="Your timer keeps running">{{ icon('log-out') }} Save &amp; exit</a>
+</header>
+<main id="main" class="content" tabindex="-1">
+  <div id="player" data-attempt-id="{{ attempt.id }}"
+       data-state-url="{{ url_for('quiz.api_state', attempt_id=attempt.id) }}"
+       data-save-url="{{ url_for('quiz.api_save', attempt_id=attempt.id) }}"
+       data-submit-url="{{ url_for('quiz.api_submit', attempt_id=attempt.id) }}">
+    <div class="player">
+      <div class="card q-card"><div class="skeleton" style="height:22px;width:40%"></div><div class="skeleton mt-2" style="height:32px"></div>
+        {% for i in range(4) %}<div class="skeleton mt-2" style="height:56px;border-radius:16px"></div>{% endfor %}<p class="text-sm text-muted mt-2">Loading your quiz…</p></div>
+      <div class="card"><div class="skeleton" style="height:160px"></div></div>
+    </div>
+  </div>
+  <noscript><div class="alert alert-error">{{ icon('alert') }}<div>The quiz player needs JavaScript for the timer and autosave. Please enable JavaScript and reload.</div></div></noscript>
+</main>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/player.js') }}?v={{ app_version }}" defer></script>{% endblock %}

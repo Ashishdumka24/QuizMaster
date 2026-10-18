@@ -1,0 +1,24 @@
+{% extends "layouts/base.html" %}
+{% block title %}Certificate · {{ quiz.title }}{% endblock %}
+{% block body_class %}has-mesh{% endblock %}
+{% block body %}
+<main id="main" class="content" tabindex="-1" style="max-width:1100px">
+  <div class="row-between mb-2 no-print">
+    <a class="btn btn-ghost" href="{{ url_for('quiz.result', attempt_id=attempt.id) }}">{{ icon('arrow-left') }} Back to result</a>
+    <button type="button" class="btn btn-primary" data-print>{{ icon('printer') }} Print / save as PDF</button>
+  </div>
+  <article class="certificate" aria-label="Certificate of achievement">
+    <div class="small-caps">QuizMaster · Certificate of achievement</div>
+    <h1>Certificate of Achievement</h1>
+    <p style="margin:.2rem 0;color:#6B7094">This certifies that</p>
+    <div class="name">{{ user.full_name }}</div>
+    <p style="max-width:620px;margin:0 auto;color:#3F4269">has successfully passed <b>{{ quiz.title }}</b>{% if quiz.category %} ({{ quiz.category.name }}){% endif %} with a score of <b>{{ '%.1f' | format(attempt.percentage or 0) }}%</b> (pass mark {{ '%.0f' | format(attempt.pass_percentage) }}%).</p>
+    <div class="seal" aria-hidden="true">{{ icon('award', size=44) }}</div>
+    <div class="sig">
+      <div>Completed {{ attempt.submitted_at | dt('%d %B %Y') }}</div>
+      <div>Certificate ID QM-{{ '%06d' | format(attempt.id) }}-{{ attempt.user_id }}</div>
+    </div>
+    <p style="font-size:.72rem;color:#9497B8;margin:1.2rem 0 0">Issued automatically by QuizMaster from a server-graded attempt. Verify with your administrator using the certificate ID.</p>
+  </article>
+</main>
+{% endblock %}

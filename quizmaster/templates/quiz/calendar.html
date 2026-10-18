@@ -1,0 +1,30 @@
+{% extends "layouts/app.html" %}
+{% from "macros/ui.html" import page_head %}
+{% block title %}Quiz calendar{% endblock %}
+{% block content %}
+{% call page_head('Quiz calendar', 'When scheduled quizzes open and close (times in IST).') %}
+  <a class="btn btn-ghost btn-icon" href="{{ url_for('quiz.calendar_view', month=prev_month.strftime('%Y-%m')) }}" aria-label="Previous month">{{ icon('chevron-left') }}</a>
+  <a class="btn btn-soft" href="{{ url_for('quiz.calendar_view') }}">Today</a>
+  <a class="btn btn-ghost btn-icon" href="{{ url_for('quiz.calendar_view', month=next_month.strftime('%Y-%m')) }}" aria-label="Next month">{{ icon('chevron-right') }}</a>
+{% endcall %}
+<div class="grid-main">
+  <section class="card">
+    <h2 style="margin-top:0;font-size:1.2rem">{{ month.strftime('%B %Y') }}</h2>
+    <div class="cal" role="grid" aria-label="{{ month.strftime('%B %Y') }}">
+      {% for d in ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] %}<div class="cal-head" role="columnheader">{{ d }}</div>{% endfor %}
+      {% for week in weeks %}{% for day in week %}
+        <div class="cal-day{{ ' out' if day.month != month.month }}{{ ' today' if day == today }}" role="gridcell" aria-label="{{ day.strftime('%d %B') }}{% if events.get(day) %}, {{ events.get(day) | length }} event(s){% endif %}">
+          <span class="d">{{ day.day }}</span>
+          {% for e in events.get(day, []) %}<a class="cal-ev {{ e.kind }}" href="{{ url_for('quiz.detail', slug=e.quiz.slug) }}" title="{{ e.quiz.title }} {{ e.kind }} at {{ e.time }}">{{ '▶' if e.kind == 'opens' else '■' }} {{ e.quiz.title }}</a>{% endfor %}
+        </div>
+      {% endfor %}{% endfor %}
+    </div>
+    <div class="legend"><span><i style="background:var(--green)"></i>Opens</span><span><i style="background:var(--red)"></i>Closes</span></div>
+  </section>
+  <aside class="card"><h2 style="margin-top:0;font-size:1.05rem">{{ icon('clock') }} Coming up this month</h2>
+    {% for e in upcoming %}<div class="activity-item"><span class="activity-ic" style="background: {{ 'var(--green)' if e.kind == 'opens' else 'var(--coral)' }}">{{ icon('play' if e.kind == 'opens' else 'lock') }}</span>
+      <div style="min-width:0"><a class="fw-600" href="{{ url_for('quiz.detail', slug=e.quiz.slug) }}">{{ e.quiz.title }}</a><div class="text-xs text-muted">{{ e.kind | capitalize }} · {{ e.time }}</div></div></div>
+    {% else %}<p class="text-sm text-muted" style="margin:0">No scheduled openings or closings from today to the end of this month. Quizzes without dates are always open — see <a href="{{ url_for('quiz.explore') }}">Explore</a>.</p>{% endfor %}
+  </aside>
+</div>
+{% endblock %}
