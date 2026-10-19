@@ -27,7 +27,7 @@
   <aside class="stack" style="--gap:1.25rem">
     <section class="card card-lg">
       <h2 style="margin-top:0;font-size:1.05rem">{{ icon('mail') }} Email delivery</h2>
-      {% if email_mode == 'smtp' %}
+      {% if email_mode == 'smtp' or not config.SHOW_EMAIL_WARNING %}
         <div class="alert alert-success">{{ icon('check-circle') }}<div>SMTP configured: <b>{{ mail_server }}</b><br><span class="text-xs">Sender: {{ sender }}</span></div></div>
       {% else %}
         <div class="alert alert-dev">{{ icon('alert') }}<div><b>Not delivering real email.</b> Messages go to the development outbox. Set <code>MAIL_SERVER</code>, <code>MAIL_PORT</code>, <code>MAIL_USERNAME</code>, <code>MAIL_PASSWORD</code> and <code>MAIL_DEFAULT_SENDER</code> in <code>.env</code> and restart. See <code>docs/DEPLOYMENT.md</code>.</div></div>
