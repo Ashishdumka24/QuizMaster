@@ -18,7 +18,7 @@
   <div class="welcome-art" aria-hidden="true">{{ icon('activity', size=120) }}</div>
 </section>
 
-{% if email_mode != 'smtp' %}
+{% if config.SHOW_EMAIL_WARNING and email_mode != 'smtp' %}
 <div class="alert alert-dev mt-2">{{ icon('mail') }}<div><b>Email is in development-outbox mode.</b> OTP and reset emails are written to <code>instance/dev_outbox</code> and are <u>not delivered</u>. Configure SMTP in <code>.env</code> before real use — see <a href="{{ url_for('admin.settings') }}">Settings</a>.</div></div>
 {% endif %}
 

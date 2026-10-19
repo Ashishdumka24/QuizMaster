@@ -40,6 +40,14 @@ class Config:
     APP_NAME = "QuizMaster"
     APP_VERSION = "1.0.0"
     APP_ENV = os.environ.get("APP_ENV", "development").lower()
+    
+    # Temporarily control the admin email warning.
+    # Set SHOW_EMAIL_WARNING=true to display it again.
+    SHOW_EMAIL_WARNING = (
+    os.environ.get("SHOW_EMAIL_WARNING", "false").strip().lower()
+    in {"1", "true", "yes", "on"}
+)
+    
     APP_TIMEZONE = os.environ.get("APP_TIMEZONE", "Asia/Kolkata")
     APP_BASE_URL = os.environ.get("APP_BASE_URL", "http://127.0.0.1:5000").rstrip("/")
     # When APP_BASE_URL is not set explicitly (local dev / preview), links in
